@@ -61,12 +61,11 @@
         }
     </style>
 
-    <div class="max-w-[1600px] w-full mx-auto p-6 lg:p-8">
-
+    <div class="max-w-[1600px] w-full mx-auto p-6 lg:p-8 space-y-6">
         <!-- ALERT BERHASIL -->
         @if (session('success'))
             <div id="success-alert"
-                class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-4 rounded-xl text-xs flex items-center justify-between shadow-sm mb-5 transition-opacity duration-500">
+                class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-4 rounded-xl text-xs flex items-center justify-between shadow-sm transition-opacity duration-500">
                 <div class="flex items-center space-x-3">
                     <i class="fa-solid fa-circle-check text-emerald-500 text-base"></i>
                     <div><span class="font-bold">Berhasil!</span> {{ session('success') }}</div>
@@ -78,15 +77,13 @@
         @endif
 
         <!-- Greeting -->
-        <h1 class="text-2xl font-bold text-uc-dark mb-5">Halo, {{ $firstName }}!</h1>
+        <h1 class="text-2xl font-bold text-uc-dark">Halo, {{ $firstName }}!</h1>
 
-        <!-- Content Grid Layout -->
+        <!-- ================= BARIS ATAS: Statistik/Card & Preview Signage ================= -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            <!-- LEFT COLUMN (Cards + Table) - 8 Cols -->
+            <!-- KOLOM KIRI ATAS (3 Card Statistik & Tabel Playlists) - 8 Cols -->
             <div class="lg:col-span-8 space-y-6">
-
-                <!-- 3 STATISTIC CARDS -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <!-- Total Content Card -->
                     <div class="bg-uc-blue text-white rounded-2xl p-5 shadow-sm flex flex-col justify-between h-32">
@@ -95,15 +92,17 @@
                             {{ $totalContent }} Videos
                         </div>
                     </div>
-
                     <!-- Active Playlist Card -->
                     <div class="bg-uc-green text-white rounded-2xl p-5 shadow-sm flex flex-col justify-between h-32">
                         <span class="text-xs font-medium opacity-90">Active Playlist</span>
                         <div class="text-2xl font-bold text-center my-auto">
-                            {{ $activePlaylists }} Playlists
+                            @if (isset($currentSignage) && $currentSignage && $currentSignage->playlist_id)
+                                Playlist {{ $currentSignage->playlist_id }}
+                            @else
+                                -
+                            @endif
                         </div>
                     </div>
-
                     <!-- Average Playtime Card -->
                     <div class="bg-uc-purple text-white rounded-2xl p-5 shadow-sm flex flex-col justify-between h-32">
                         <span class="text-xs font-medium opacity-90">Average Playtime</span>
@@ -113,7 +112,7 @@
                     </div>
                 </div>
 
-                <!-- PLAYLISTS SECTION WITH TABS -->
+                <!-- TABEL PLAYLISTS UTAMA DI ATAS -->
                 <div class="space-y-3">
                     <!-- Tab Switcher Buttons -->
                     <div class="flex space-x-2">
@@ -130,9 +129,9 @@
                     <!-- TAB 1: PLAYLISTS AKTIF -->
                     <div id="tab-playlists-content">
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                                 <table class="w-full text-left text-xs">
-                                    <thead>
+                                    <thead class="sticky top-0 z-10">
                                         <tr class="bg-uc-yellow text-uc-dark font-semibold">
                                             <th class="p-3 border-b">ID</th>
                                             <th class="p-3 border-b">Tanggal</th>
@@ -146,7 +145,6 @@
                                         @php
                                             $groupedPlaylists = $playlistsData->groupBy('playlist_id');
                                         @endphp
-
                                         @forelse($groupedPlaylists as $playlistId => $items)
                                             @foreach ($items as $index => $item)
                                                 <tr class="playlist-row cursor-pointer hover:bg-amber-50/40 transition-colors"
@@ -161,13 +159,11 @@
                                                             {{ date('d/m/Y', strtotime($item->playlist_date)) }}
                                                         </td>
                                                     @endif
-
                                                     <td class="p-3 text-center font-bold text-uc-orange">
                                                         {{ $item->playlist_order }}</td>
                                                     <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}
                                                     </td>
                                                     <td class="p-3 text-uc-gray">{{ $item->content_duration }}s</td>
-
                                                     @if ($index === 0)
                                                         <td class="p-3 text-center align-middle bg-gray-50/50 space-y-2"
                                                             rowspan="{{ count($items) }}">
@@ -182,7 +178,6 @@
                                                                                 : asset(
                                                                                     'storage/' . ltrim($filePath, '/'),
                                                                                 );
-
                                                                         $extension = strtolower(
                                                                             pathinfo($filePath, PATHINFO_EXTENSION),
                                                                         );
@@ -193,7 +188,6 @@
                                                                             'gif',
                                                                             'webp',
                                                                         ]);
-
                                                                         return [
                                                                             'url' => $fullUrl,
                                                                             'title' => $i->content_title,
@@ -204,7 +198,6 @@
                                                                     })
                                                                     ->values();
                                                             @endphp
-
                                                             <!-- Tombol Show Now -->
                                                             <button type="button"
                                                                 onclick="startPlaylist({{ json_encode($playlistVideos) }}, '{{ $playlistId }}')"
@@ -212,7 +205,6 @@
                                                                 <i class="fa-solid fa-play text-[9px]"></i>
                                                                 <span>Show Now</span>
                                                             </button>
-
                                                             <!-- Tombol Delete Terintegrasi SweetAlert2 -->
                                                             <form id="delete-form-{{ $playlistId }}"
                                                                 action="{{ route('playlist.destroy', $playlistId) }}"
@@ -245,9 +237,9 @@
                     <!-- TAB 2: DELETED PLAYLISTS -->
                     <div id="tab-deleted-content" class="hidden">
                         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div class="overflow-x-auto">
+                            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
                                 <table class="w-full text-left text-xs">
-                                    <thead>
+                                    <thead class="sticky top-0 z-10">
                                         <tr class="bg-[#EB5F5F] text-white font-semibold">
                                             <th class="p-3 border-b">ID</th>
                                             <th class="p-3 border-b">Tanggal</th>
@@ -289,18 +281,15 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- RIGHT COLUMN (Sleek Samsung Signage 24" Frame) - 4 Cols -->
+            <!-- KOLOM KANAN ATAS (Samsung Signage Preview) - 4 Cols -->
             <div class="lg:col-span-4 flex flex-col items-center justify-center w-full">
-
                 <!-- Status Badge -->
                 <div class="flex items-center space-x-2 text-xs font-semibold text-uc-dark mb-3 justify-center w-full">
                     <span class="w-2.5 h-2.5 rounded-full bg-uc-green animate-pulse"></span>
                     <span id="playing-status-title">Now Playing: Standby</span>
                 </div>
-
                 <!-- SAMSUNG SIGNAGE 24" -->
                 <div
                     class="w-full max-w-[280px] aspect-[9/16] bg-slate-900 p-2 border-4 border-slate-800 relative flex items-center justify-center shadow-xl">
@@ -314,32 +303,124 @@
                             <p class="text-[10px] text-gray-500">Klik <span class="text-uc-green font-semibold">Show
                                     Now</span> untuk memutar playlist</p>
                         </div>
-
                         <!-- Video Player -->
                         <video id="tv-video-player" class="w-full h-full object-contain bg-black hidden" playsinline muted
                             controls disablePictureInPicture controlslist="nodownload noplaybackrate">
                             <source id="tv-video-source" src="" type="video/mp4">
                         </video>
-
                         <!-- Image Player -->
                         <img id="tv-image-player" src="" alt="Signage Image"
                             class="w-full h-full object-contain bg-black hidden">
                     </div>
                 </div>
-
-                <!-- Bagian Tombol Show di bawah Preview -->
-                <div class="mt-4 text-center">
+                <!-- Tombol Show ke Signage -->
+                <div class="mt-4 text-center w-full max-w-[280px]">
                     <button id="btnShowSignage"
-                        class="w-full py-3 px-6 text-white font-semibold rounded-xl shadow-lg transition duration-300 transform active:scale-95"
+                        class="w-full py-3 px-6 text-white font-semibold rounded-xl shadow-lg transition duration-300 transform active:scale-95 text-xs"
                         style="background: linear-gradient(135deg, #00b4db, #0083b0);">
                         Show to Signage
                     </button>
                 </div>
+            </div>
+        </div>
 
+        <!-- ================= BARIS BAWAH: Tabel Konten & Tabel Riwayat Signage (Tinggi Sama & Scrollable) ================= -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- KOLOM KIRI BAWAH (Daftar Konten & Pengunggah) - 8 Cols -->
+            <div class="lg:col-span-8 space-y-3 flex flex-col">
+                <h3 class="text-xs font-bold text-uc-dark flex items-center space-x-2 px-1">
+                    <span>Daftar Konten & Pengunggah</span>
+                </h3>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[280px]">
+                    <div class="overflow-x-auto overflow-y-auto flex-1">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-uc-blue text-white font-semibold">
+                                    <th class="p-3">Judul Konten</th>
+                                    <th class="p-3">Kategori</th>
+                                    <th class="p-3 text-right">Pengunggah</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 text-gray-700">
+                                @php
+                                    $sortedContents = isset($allContents)
+                                        ? $allContents->sortByDesc(function ($item) {
+                                            return $item->created_at ?? ($item->content_id ?? 0);
+                                        })
+                                        : collect();
+                                @endphp
+                                @forelse($sortedContents as $content)
+                                    <tr class="hover:bg-blue-50/40 transition-colors">
+                                        <td class="p-3 font-medium text-uc-dark">{{ $content->content_title }}</td>
+                                        <td class="p-3 text-gray-500">{{ $content->content_category }}</td>
+                                        <td class="p-3 text-right">
+                                            <span
+                                                class="inline-flex items-center space-x-1 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full font-medium">
+                                                <i class="fa-solid fa-user text-[10px]"></i>
+                                                <span>{{ $content->users_name }}</span>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada konten
+                                            yang di-upload.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KOLOM KANAN BAWAH (Riwayat Signage History) - 4 Cols -->
+            <div class="lg:col-span-4 space-y-3 flex flex-col w-full">
+                <h3 class="text-xs font-bold text-uc-dark flex items-center space-x-2 px-1">
+                    <span>Riwayat Signage (History)</span>
+                </h3>
+
+                <div
+                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[280px] w-full">
+                    <div class="overflow-x-auto overflow-y-auto flex-1">
+                        <table class="w-full text-left text-xs">
+                            <thead class="sticky top-0 z-10">
+                                <tr class="bg-uc-purple text-white font-semibold">
+                                    <th class="p-3">Playlist</th>
+                                    <th class="p-3">User</th>
+                                    <th class="p-3 text-right">Waktu</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 text-gray-700">
+                                @php
+                                    $signageHistories = isset($allSignageHistories) ? $allSignageHistories : collect();
+                                @endphp
+                                @forelse($signageHistories as $history)
+                                    <tr class="hover:bg-purple-50/40 transition-colors">
+                                        <td class="p-3 font-semibold text-uc-dark">#P{{ $history->playlist_id }}</td>
+                                        <td class="p-3 text-gray-800 truncate max-w-[80px]"
+                                            title="{{ $history->status_updated_by ?? '-' }}">
+                                            {{ $history->status_updated_by ?? '-' }}
+                                        </td>
+                                        <td class="p-3 text-right text-gray-500 text-[10px]">
+                                            {{ $history->status_updated_at ? date('d/m/Y H:i:s', strtotime($history->status_updated_at)) : '-' }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada riwayat.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
         </div>
-
+    </div>
     </div>
 
     <!-- SCRIPT TAB SWITCHER, SWEETALERT CONFIRM, & PLAYER -->
@@ -427,9 +508,6 @@
         let imageTimer = null;
         let selectedPlaylistId = null; // <-- Di sini tempat deklarasi variabel pilihan playlist
 
-        // ==========================================
-        // TAMBAHKAN KODE INI DI SINI (UNTUK KLIK TABEL)
-        // ==========================================
         document.addEventListener("DOMContentLoaded", function() {
             document.querySelectorAll('.playlist-row').forEach(row => {
                 row.addEventListener('click', function() {

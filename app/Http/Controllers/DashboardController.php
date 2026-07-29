@@ -7,6 +7,7 @@ use App\Models\SignageStatus;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -24,7 +25,6 @@ class DashboardController extends Controller
             ->where('status_del', '1')
             ->get();
 
-        // INI YANG DICARI SAMA VIEW-NYA (Baris 85)
         $totalContent = \App\Models\Content::query()->where('status_del', '0')->count();
         $activePlaylists = $playlists->count();
         $averagePlaytime = \App\Models\Content::query()->where('status_del', '0')->average('content_duration') ?? 0;
@@ -50,12 +50,43 @@ class DashboardController extends Controller
             ->orderBy('status_updated_at', 'desc')
             ->first();
 
+        // 1. Ambil info Playlist yang SEDANG TAYANG (Aktif) terakhir lengkap dengan nama usernya
+        $currentSignage = DB::table('signage_status')
+            ->join('playlists', 'signage_status.playlist_id', '=', 'playlists.playlist_id')
+            ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
+            ->orderBy('signage_status.status_updated_at', 'desc')
+            ->select(
+                'signage_status.*',
+                'playlists.playlist_date',
+                'users.users_name as updated_by_name'
+            )
+            ->first();
+
+        $allSignageHistories = DB::table('signage_status')
+            ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
+            ->orderBy('signage_status.status_updated_at', 'desc') // Urutkan dari yang terbaru
+            ->select(
+                'signage_status.*',
+                'users.users_name as status_updated_by' // Kita override agar langsung berisi nama user, atau biarkan ID-nya
+            )
+            ->get();
+
+        // 2. Ambil daftar semua konten yang di-upload lengkap dengan nama pengunggahnya
+        $allContents = DB::table('contents')
+            ->join('users', 'contents.users_id', '=', 'users.users_id')
+            ->where('contents.status_del', '0')
+            ->select('contents.*', 'users.users_name')
+            ->get();
+
         // PASTIKAN SEMUA VARIABEL INI DI-COMPACT
         return view('dashboard', compact(
             'playlists',
             'trashedPlaylists',
             'playlistsData',
             'latestSignage',
+            'currentSignage',
+            'allSignageHistories', 
+            'allContents',
             'firstName',
             'totalContent',
             'activePlaylists',
