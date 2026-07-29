@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Playlist;
 use App\Models\SignageStatus;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -59,5 +61,21 @@ class DashboardController extends Controller
             'activePlaylists',
             'averagePlaytime'
         ));
+    }
+
+    public function updateSignageStatus(Request $request, $id)
+    {
+        // Simpan status signage baru ke database
+        SignageStatus::create([
+            'playlist_id' => $id,
+            'users_id' => Auth::user()->users_id,         // User yang sedang login
+            'status_updated_by' => Auth::user()->users_id, // ID admin yang memencet tombol
+            'status_updated_at' => Carbon::now('Asia/Jakarta'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Playlist berhasil ditayangkan ke layar TV Signage!'
+        ]);
     }
 }

@@ -8,39 +8,47 @@
             padding: 1.25em !important;
             font-family: inherit !important;
         }
+
         .swal-custom-title {
             font-size: 1.125rem !important;
             font-weight: 600 !important;
             color: #1F2937 !important;
         }
+
         .swal-custom-html {
             font-size: 0.875rem !important;
             color: #4B5563 !important;
         }
+
         .swal-btn-confirm-delete {
-            background-color: #F27D00 !important; /* uc-orange */
+            background-color: #F27D00 !important;
+            /* uc-orange */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
             font-size: 12px !important;
             font-weight: 600 !important;
             border: none !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
             cursor: pointer;
         }
+
         .swal-btn-confirm-recover {
-            background-color: #0084FF !important; /* uc-blue */
+            background-color: #0084FF !important;
+            /* uc-blue */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
             font-size: 12px !important;
             font-weight: 600 !important;
             border: none !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
             cursor: pointer;
         }
+
         .swal-btn-cancel {
-            background-color: #6B7280 !important; /* abu-abu kalem */
+            background-color: #6B7280 !important;
+            /* abu-abu kalem */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
@@ -48,7 +56,7 @@
             font-weight: 600 !important;
             border: none !important;
             margin-right: 12px !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
             cursor: pointer;
         }
     </style>
@@ -57,7 +65,8 @@
 
         <!-- ALERT BERHASIL -->
         @if (session('success'))
-            <div id="success-alert" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-4 rounded-xl text-xs flex items-center justify-between shadow-sm mb-5 transition-opacity duration-500">
+            <div id="success-alert"
+                class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-4 rounded-xl text-xs flex items-center justify-between shadow-sm mb-5 transition-opacity duration-500">
                 <div class="flex items-center space-x-3">
                     <i class="fa-solid fa-circle-check text-emerald-500 text-base"></i>
                     <div><span class="font-bold">Berhasil!</span> {{ session('success') }}</div>
@@ -108,11 +117,11 @@
                 <div class="space-y-3">
                     <!-- Tab Switcher Buttons -->
                     <div class="flex space-x-2">
-                        <button onclick="switchTab('playlists')" id="tab-playlists-btn" 
+                        <button onclick="switchTab('playlists')" id="tab-playlists-btn"
                             class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm">
                             Playlists
                         </button>
-                        <button onclick="switchTab('deleted')" id="tab-deleted-btn" 
+                        <button onclick="switchTab('deleted')" id="tab-deleted-btn"
                             class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300">
                             Deleted Playlists
                         </button>
@@ -140,7 +149,8 @@
 
                                         @forelse($groupedPlaylists as $playlistId => $items)
                                             @foreach ($items as $index => $item)
-                                                <tr class="hover:bg-amber-50/40 transition-colors">
+                                                <tr class="playlist-row cursor-pointer hover:bg-amber-50/40 transition-colors"
+                                                    data-playlist-id="{{ $playlistId }}">
                                                     @if ($index === 0)
                                                         <td class="p-3 font-semibold text-uc-dark align-middle border-r border-gray-50 bg-gray-50/50"
                                                             rowspan="{{ count($items) }}">
@@ -154,7 +164,8 @@
 
                                                     <td class="p-3 text-center font-bold text-uc-orange">
                                                         {{ $item->playlist_order }}</td>
-                                                    <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}</td>
+                                                    <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}
+                                                    </td>
                                                     <td class="p-3 text-uc-gray">{{ $item->content_duration }}s</td>
 
                                                     @if ($index === 0)
@@ -168,7 +179,9 @@
                                                                             str_starts_with($filePath, 'http://') ||
                                                                             str_starts_with($filePath, 'https://')
                                                                                 ? $filePath
-                                                                                : asset('storage/' . ltrim($filePath, '/'));
+                                                                                : asset(
+                                                                                    'storage/' . ltrim($filePath, '/'),
+                                                                                );
 
                                                                         $extension = strtolower(
                                                                             pathinfo($filePath, PATHINFO_EXTENSION),
@@ -185,7 +198,8 @@
                                                                             'url' => $fullUrl,
                                                                             'title' => $i->content_title,
                                                                             'duration' =>
-                                                                                $i->content_duration ?? ($isImage ? 5 : 10),
+                                                                                $i->content_duration ??
+                                                                                ($isImage ? 5 : 10),
                                                                         ];
                                                                     })
                                                                     ->values();
@@ -200,10 +214,14 @@
                                                             </button>
 
                                                             <!-- Tombol Delete Terintegrasi SweetAlert2 -->
-                                                            <form id="delete-form-{{ $playlistId }}" action="{{ route('playlist.destroy', $playlistId) }}" method="POST" class="inline-block w-full">
+                                                            <form id="delete-form-{{ $playlistId }}"
+                                                                action="{{ route('playlist.destroy', $playlistId) }}"
+                                                                method="POST" class="inline-block w-full">
                                                                 @csrf
                                                                 @method('PATCH')
-                                                                <button type="button" onclick="confirmDelete('{{ $playlistId }}')" class="bg-[#EB5F5F] hover:bg-red-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
+                                                                <button type="button"
+                                                                    onclick="confirmDelete('{{ $playlistId }}')"
+                                                                    class="bg-[#EB5F5F] hover:bg-red-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
                                                                     <i class="fa-solid fa-trash-can text-[9px]"></i>
                                                                     <span>Delete</span>
                                                                 </button>
@@ -214,7 +232,8 @@
                                             @endforeach
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="p-6 text-center text-gray-400">Belum ada playlist aktif saat ini.</td>
+                                                <td colspan="6" class="p-6 text-center text-gray-400">Belum ada playlist
+                                                    aktif saat ini.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -240,13 +259,19 @@
                                         @forelse($trashedPlaylists ?? [] as $trash)
                                             <tr class="hover:bg-red-50/40 transition-colors">
                                                 <td class="p-3 font-semibold text-uc-dark">#P{{ $trash->playlist_id }}</td>
-                                                <td class="p-3">{{ date('d/m/Y', strtotime($trash->playlist_date)) }}</td>
-                                                <td class="p-3 text-center font-bold">{{ $trash->details->count() }} Items</td>
+                                                <td class="p-3">{{ date('d/m/Y', strtotime($trash->playlist_date)) }}
+                                                </td>
+                                                <td class="p-3 text-center font-bold">{{ $trash->details->count() }} Items
+                                                </td>
                                                 <td class="p-3 text-center">
-                                                    <form id="recover-form-{{ $trash->playlist_id }}" action="{{ route('playlist.restore', $trash->playlist_id) }}" method="POST" class="inline-block">
+                                                    <form id="recover-form-{{ $trash->playlist_id }}"
+                                                        action="{{ route('playlist.restore', $trash->playlist_id) }}"
+                                                        method="POST" class="inline-block">
                                                         @csrf
                                                         @method('PATCH')
-                                                        <button type="button" onclick="confirmRecover('{{ $trash->playlist_id }}')" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 inline-flex items-center space-x-1 text-[11px] shadow-sm">
+                                                        <button type="button"
+                                                            onclick="confirmRecover('{{ $trash->playlist_id }}')"
+                                                            class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 inline-flex items-center space-x-1 text-[11px] shadow-sm">
                                                             <i class="fa-solid fa-rotate-left"></i>
                                                             <span>Recover</span>
                                                         </button>
@@ -277,24 +302,38 @@
                 </div>
 
                 <!-- SAMSUNG SIGNAGE 24" -->
-                <div class="w-full max-w-[280px] aspect-[9/16] bg-slate-900 p-2 border-4 border-slate-800 relative flex items-center justify-center shadow-xl">
+                <div
+                    class="w-full max-w-[280px] aspect-[9/16] bg-slate-900 p-2 border-4 border-slate-800 relative flex items-center justify-center shadow-xl">
                     <!-- Inner Screen -->
-                    <div class="w-full h-full bg-slate-950 border border-slate-800 overflow-hidden relative flex items-center justify-center">
+                    <div
+                        class="w-full h-full bg-slate-950 border border-slate-800 overflow-hidden relative flex items-center justify-center">
                         <!-- Placeholder View -->
                         <div id="tv-placeholder" class="text-center p-5 flex flex-col items-center justify-center h-full">
                             <i class="fa-solid fa-tv text-3xl text-gray-600 mb-3"></i>
                             <p class="text-xs text-gray-300 font-medium mb-1">Samsung Signage 24"</p>
-                            <p class="text-[10px] text-gray-500">Klik <span class="text-uc-green font-semibold">Show Now</span> untuk memutar playlist</p>
+                            <p class="text-[10px] text-gray-500">Klik <span class="text-uc-green font-semibold">Show
+                                    Now</span> untuk memutar playlist</p>
                         </div>
 
                         <!-- Video Player -->
-                        <video id="tv-video-player" class="w-full h-full object-contain bg-black hidden" playsinline muted controls disablePictureInPicture controlslist="nodownload noplaybackrate">
+                        <video id="tv-video-player" class="w-full h-full object-contain bg-black hidden" playsinline muted
+                            controls disablePictureInPicture controlslist="nodownload noplaybackrate">
                             <source id="tv-video-source" src="" type="video/mp4">
                         </video>
 
                         <!-- Image Player -->
-                        <img id="tv-image-player" src="" alt="Signage Image" class="w-full h-full object-contain bg-black hidden">
+                        <img id="tv-image-player" src="" alt="Signage Image"
+                            class="w-full h-full object-contain bg-black hidden">
                     </div>
+                </div>
+
+                <!-- Bagian Tombol Show di bawah Preview -->
+                <div class="mt-4 text-center">
+                    <button id="btnShowSignage"
+                        class="w-full py-3 px-6 text-white font-semibold rounded-xl shadow-lg transition duration-300 transform active:scale-95"
+                        style="background: linear-gradient(135deg, #00b4db, #0083b0);">
+                        Show to Signage
+                    </button>
                 </div>
 
             </div>
@@ -312,21 +351,25 @@
             const deletedContent = document.getElementById('tab-deleted-content');
 
             if (tabName === 'playlists') {
-                playlistsTabBtn.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
-                deletedTabBtn.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
-                
+                playlistsTabBtn.className =
+                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
+                deletedTabBtn.className =
+                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
+
                 playlistsContent.classList.remove('hidden');
                 deletedContent.classList.add('hidden');
             } else {
-                deletedTabBtn.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
-                playlistsTabBtn.className = "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
-                
+                deletedTabBtn.className =
+                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
+                playlistsTabBtn.className =
+                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
+
                 deletedContent.classList.remove('hidden');
                 playlistsContent.classList.add('hidden');
             }
         }
 
-        // SweetAlert2 Konfirmasi Hapus (Menggunakan CSS Murni)
+        // SweetAlert2 Konfirmasi Hapus
         function confirmDelete(playlistId) {
             Swal.fire({
                 title: 'Pindahkan ke sampah?',
@@ -352,7 +395,7 @@
             });
         }
 
-        // SweetAlert2 Konfirmasi Recover (Menggunakan CSS Murni)
+        // SweetAlert2 Konfirmasi Recover
         function confirmRecover(playlistId) {
             Swal.fire({
                 title: 'Pulihkan playlist?',
@@ -382,6 +425,19 @@
         let currentIndex = 0;
         let currentPlaylistId = '';
         let imageTimer = null;
+        let selectedPlaylistId = null; // <-- Di sini tempat deklarasi variabel pilihan playlist
+
+        // ==========================================
+        // TAMBAHKAN KODE INI DI SINI (UNTUK KLIK TABEL)
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('.playlist-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    // Ambil ID playlist dari atribut data
+                    selectedPlaylistId = this.getAttribute('data-playlist-id');
+                });
+            });
+        });
 
         function startPlaylist(videos, playlistId) {
             if (!videos || videos.length === 0) return;
@@ -443,5 +499,91 @@
                 };
             }
         }
+    </script>
+
+    <script>
+        // 1. Variabel dan script klik tabel
+        let selectedPlaylistId = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll('.playlist-row').forEach(row => {
+                row.addEventListener('click', function() {
+                    let rawId = this.getAttribute('data-playlist-id');
+                    selectedPlaylistId = rawId.replace('#', '');
+                });
+            });
+        });
+    </script>
+
+    <!-- Script SweetAlert & AJAX untuk Tombol Show to Signage -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.getElementById('btnShowSignage').addEventListener('click', function() {
+            if (!selectedPlaylistId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pilih Playlist Dulu',
+                    text: 'Silakan klik salah satu playlist dari tabel untuk melihat preview.',
+                    confirmButtonColor: '#0083b0'
+                });
+                return;
+            }
+
+            // <--- TARUH / TIMPA KODE YANG BARU DI DALAM SINI --->
+            Swal.fire({
+                title: 'Tampilkan ke Signage?',
+                text: "Apakah Anda yakin ingin menampilkan playlist ini ke layar TV signage sekarang?",
+                icon: 'question',
+                showCancelButton: true,
+                reverseButtons: true, // Tombol batal di kiri
+                confirmButtonColor: '#0083b0',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Tampilkan Sekarang',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.showLoading();
+
+                    fetch(`/dashboard/show/${selectedPlaylistId}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(async response => {
+                            const isJson = response.headers.get('content-type')?.includes(
+                                'application/json');
+                            const data = isJson ? await response.json() : null;
+
+                            if (!response.ok) {
+                                const errorMsg = data && data.message ? data.message :
+                                    'Server error status: ' + response.status;
+                                throw new Error(errorMsg);
+                            }
+                            return data;
+                        })
+                        .then(data => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message ||
+                                    'Playlist berhasil ditampilkan ke signage.',
+                            }).then(() => {
+                                location.reload();
+                            });
+                        })
+                        .catch(error => {
+                            console.error('Error detail:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: error.message || 'Terjadi kesalahan sistem.',
+                            });
+                        });
+                }
+            });
+        });
     </script>
 @endsection
