@@ -79,7 +79,7 @@
         <!-- Greeting -->
         <h1 class="text-2xl font-bold text-uc-dark">Halo, {{ $firstName }}!</h1>
 
-        <!-- ================= BARIS ATAS: Statistik/Card & Preview Signage ================= -->
+        <!-- BARIS ATAS: Statistik/Card & Preview Signage -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
             <!-- KOLOM KIRI ATAS (3 Card Statistik & Tabel Playlists) - 8 Cols -->
@@ -117,11 +117,11 @@
                     <!-- Tab Switcher Buttons -->
                     <div class="flex space-x-2">
                         <button onclick="switchTab('playlists')" id="tab-playlists-btn"
-                            class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm">
+                            class="px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm">
                             Playlists
                         </button>
                         <button onclick="switchTab('deleted')" id="tab-deleted-btn"
-                            class="px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300">
+                            class="px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm">
                             Deleted Playlists
                         </button>
                     </div>
@@ -425,28 +425,30 @@
 
     <!-- SCRIPT TAB SWITCHER, SWEETALERT CONFIRM, & PLAYER -->
     <script>
-        function switchTab(tabName) {
-            const playlistsTabBtn = document.getElementById('tab-playlists-btn');
-            const deletedTabBtn = document.getElementById('tab-deleted-btn');
+        function switchTab(tab) {
             const playlistsContent = document.getElementById('tab-playlists-content');
             const deletedContent = document.getElementById('tab-deleted-content');
+            const playlistsBtn = document.getElementById('tab-playlists-btn');
+            const deletedBtn = document.getElementById('tab-deleted-btn');
 
-            if (tabName === 'playlists') {
-                playlistsTabBtn.className =
-                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
-                deletedTabBtn.className =
-                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
-
+            if (tab === 'playlists') {
                 playlistsContent.classList.remove('hidden');
                 deletedContent.classList.add('hidden');
-            } else {
-                deletedTabBtn.className =
-                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-uc-dark text-white shadow-sm";
-                playlistsTabBtn.className =
-                    "px-4 py-1.5 rounded-full text-xs font-semibold transition-all bg-gray-200 text-gray-600 hover:bg-gray-300";
 
-                deletedContent.classList.remove('hidden');
+                // Playlists aktif (Oranye F27D00), Deleted tidak aktif (Abu-abu 5F6870)
+                playlistsBtn.className =
+                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
+                deletedBtn.className =
+                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
+            } else {
                 playlistsContent.classList.add('hidden');
+                deletedContent.classList.remove('hidden');
+
+                // Playlists tidak aktif (Abu-abu 5F6870), Deleted aktif (Oranye F27D00)
+                playlistsBtn.className =
+                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
+                deletedBtn.className =
+                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
             }
         }
 
