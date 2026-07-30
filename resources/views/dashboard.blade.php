@@ -326,344 +326,357 @@
 
         <!-- ================= BARIS BAWAH: Tabel Konten & Tabel Riwayat Signage (Tinggi Sama & Scrollable) ================= -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
             <!-- KOLOM KIRI BAWAH (Daftar Konten & Pengunggah) - 8 Cols -->
             <div class="lg:col-span-8 space-y-3 flex flex-col">
-                <h3 class="text-xs font-bold text-uc-dark flex items-center space-x-2 px-1">
-                    <span>Daftar Konten & Pengunggah</span>
-                </h3>
-
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[280px]">
-                    <div class="overflow-x-auto overflow-y-auto flex-1">
-                        <table class="w-full text-left text-xs">
-                            <thead class="sticky top-0 z-10">
-                                <tr class="bg-uc-blue text-white font-semibold">
-                                    <th class="p-3">Judul Konten</th>
-                                    <th class="p-3">Kategori</th>
-                                    <th class="p-3 text-right">Pengunggah</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 text-gray-700">
-                                @php
-                                    $sortedContents = isset($allContents)
-                                        ? $allContents->sortByDesc(function ($item) {
-                                            return $item->created_at ?? ($item->content_id ?? 0);
-                                        })
-                                        : collect();
-                                @endphp
-                                @forelse($sortedContents as $content)
-                                    <tr class="hover:bg-blue-50/40 transition-colors">
-                                        <td class="p-3 font-medium text-uc-dark">{{ $content->content_title }}</td>
-                                        <td class="p-3 text-gray-500">{{ $content->content_category }}</td>
-                                        <td class="p-3 text-right">
-                                            <span
-                                                class="inline-flex items-center space-x-1 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full font-medium">
-                                                <i class="fa-solid fa-user text-[10px]"></i>
-                                                <span>{{ $content->users_name }}</span>
-                                            </span>
-                                        </td>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[280px]">
+                    <!-- Header Kartu Utama (Oranye) -->
+                    <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-table"></i>
+                            <span>Daftar Konten & Pengunggah</span>
+                        </div>
+                    </div>
+                    <!-- Kontainer Tabel -->
+                    <div class="p-3 bg-white flex-1 flex flex-col overflow-hidden">
+                        <div class="border border-gray-200 rounded-none overflow-x-auto overflow-y-auto flex-1">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="sticky top-0 z-10">
+                                    <tr class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
+                                        <th class="p-3">Judul Konten</th>
+                                        <th class="p-3">Kategori</th>
+                                        <th class="p-3 text-right">Pengunggah</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada konten
-                                            yang di-upload.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 text-gray-700">
+                                    @php
+                                        $sortedContents = isset($allContents)
+                                            ? $allContents->sortByDesc(function ($item) {
+                                                return $item->created_at ?? ($item->content_id ?? 0);
+                                            })
+                                            : collect();
+                                    @endphp
+                                    @forelse($sortedContents as $index => $content)
+                                        <!-- Baris selang-seling manual pakai ternary biar warnanya pasti (Putih & Abu-abu terang) -->
+                                        <tr
+                                            class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
+                                            <td class="p-3 font-medium text-uc-dark">{{ $content->content_title }}</td>
+                                            <td class="p-3 text-gray-500">{{ $content->content_category }}</td>
+                                            <td class="p-3 text-right">
+                                                <span
+                                                    class="inline-flex items-center space-x-1 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-none font-medium">
+                                                    <i class="fa-solid fa-user text-[10px]"></i>
+                                                    <span>{{ $content->users_name }}</span>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada
+                                                konten yang di-upload.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- KOLOM KANAN BAWAH (Riwayat Signage History) - 4 Cols -->
             <div class="lg:col-span-4 space-y-3 flex flex-col w-full">
-                <h3 class="text-xs font-bold text-uc-dark flex items-center space-x-2 px-1">
-                    <span>Riwayat Signage (History)</span>
-                </h3>
-
                 <div
-                    class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col h-[280px] w-full">
-                    <div class="overflow-x-auto overflow-y-auto flex-1">
-                        <table class="w-full text-left text-xs">
-                            <thead class="sticky top-0 z-10">
-                                <tr class="bg-uc-purple text-white font-semibold">
-                                    <th class="p-3">Playlist</th>
-                                    <th class="p-3">User</th>
-                                    <th class="p-3 text-right">Waktu</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 text-gray-700">
-                                @php
-                                    $signageHistories = isset($allSignageHistories) ? $allSignageHistories : collect();
-                                @endphp
-                                @forelse($signageHistories as $history)
-                                    <tr class="hover:bg-purple-50/40 transition-colors">
-                                        <td class="p-3 font-semibold text-uc-dark">#P{{ $history->playlist_id }}</td>
-                                        <td class="p-3 text-gray-800 truncate max-w-[80px]"
-                                            title="{{ $history->status_updated_by ?? '-' }}">
-                                            {{ $history->status_updated_by ?? '-' }}
-                                        </td>
-                                        <td class="p-3 text-right text-gray-500 text-[10px]">
-                                            {{ $history->status_updated_at ? date('d/m/Y H:i:s', strtotime($history->status_updated_at)) : '-' }}
-                                        </td>
+                    class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[280px] w-full">
+                    <!-- Header Kartu Utama (Oranye) -->
+                    <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-table"></i>
+                            <span>Riwayat Signage (History)</span>
+                        </div>
+                    </div>
+                    <!-- Kontainer Tabel -->
+                    <div class="p-3 bg-white flex-1 flex flex-col overflow-hidden">
+                        <div class="border border-gray-200 rounded-none overflow-x-auto overflow-y-auto flex-1">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead class="sticky top-0 z-10">
+                                    <tr class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
+                                        <th class="p-3">Playlist</th>
+                                        <th class="p-3">User</th>
+                                        <th class="p-3 text-right">Waktu</th>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada riwayat.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 text-gray-700">
+                                    @php
+                                        $signageHistories = isset($allSignageHistories)
+                                            ? $allSignageHistories
+                                            : collect();
+                                    @endphp
+                                    @forelse($signageHistories as $index => $history)
+                                        <!-- Baris selang-seling manual pakai ternary -->
+                                        <tr
+                                            class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
+                                            <td class="p-3 font-semibold text-uc-dark">#P{{ $history->playlist_id }}</td>
+                                            <td class="p-3 text-gray-800 truncate max-w-[80px]"
+                                                title="{{ $history->status_updated_by ?? '-' }}">
+                                                {{ $history->status_updated_by ?? '-' }}
+                                            </td>
+                                            <td class="p-3 text-right text-gray-500 text-[10px]">
+                                                {{ $history->status_updated_at ? date('d/m/Y H:i:s', strtotime($history->status_updated_at)) : '-' }}
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="p-6 text-center text-gray-400 italic">Belum ada
+                                                riwayat.</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
-
         </div>
-    </div>
-    </div>
+        
+        <!-- SCRIPT TAB SWITCHER, SWEETALERT CONFIRM, & PLAYER -->
+        <script>
+            function switchTab(tab) {
+                const playlistsContent = document.getElementById('tab-playlists-content');
+                const deletedContent = document.getElementById('tab-deleted-content');
+                const playlistsBtn = document.getElementById('tab-playlists-btn');
+                const deletedBtn = document.getElementById('tab-deleted-btn');
 
-    <!-- SCRIPT TAB SWITCHER, SWEETALERT CONFIRM, & PLAYER -->
-    <script>
-        function switchTab(tab) {
-            const playlistsContent = document.getElementById('tab-playlists-content');
-            const deletedContent = document.getElementById('tab-deleted-content');
-            const playlistsBtn = document.getElementById('tab-playlists-btn');
-            const deletedBtn = document.getElementById('tab-deleted-btn');
+                if (tab === 'playlists') {
+                    playlistsContent.classList.remove('hidden');
+                    deletedContent.classList.add('hidden');
 
-            if (tab === 'playlists') {
-                playlistsContent.classList.remove('hidden');
-                deletedContent.classList.add('hidden');
+                    // Playlists aktif (Oranye F27D00), Deleted tidak aktif (Abu-abu 5F6870)
+                    playlistsBtn.className =
+                        "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
+                    deletedBtn.className =
+                        "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
+                } else {
+                    playlistsContent.classList.add('hidden');
+                    deletedContent.classList.remove('hidden');
 
-                // Playlists aktif (Oranye F27D00), Deleted tidak aktif (Abu-abu 5F6870)
-                playlistsBtn.className =
-                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
-                deletedBtn.className =
-                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
-            } else {
-                playlistsContent.classList.add('hidden');
-                deletedContent.classList.remove('hidden');
-
-                // Playlists tidak aktif (Abu-abu 5F6870), Deleted aktif (Oranye F27D00)
-                playlistsBtn.className =
-                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
-                deletedBtn.className =
-                    "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
+                    // Playlists tidak aktif (Abu-abu 5F6870), Deleted aktif (Oranye F27D00)
+                    playlistsBtn.className =
+                        "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
+                    deletedBtn.className =
+                        "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
+                }
             }
-        }
 
-        // SweetAlert2 Konfirmasi Hapus
-        function confirmDelete(playlistId) {
-            Swal.fire({
-                title: 'Pindahkan ke sampah?',
-                text: "Playlist akan dipindahkan ke daftar Deleted Playlists.",
-                icon: 'warning',
-                width: '380px',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, hapus!',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                buttonsStyling: false,
-                customClass: {
-                    popup: 'swal-custom-popup',
-                    title: 'swal-custom-title',
-                    htmlContainer: 'swal-custom-html',
-                    confirmButton: 'swal-btn-confirm-delete',
-                    cancelButton: 'swal-btn-cancel'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('delete-form-' + playlistId).submit();
-                }
-            });
-        }
+            // SweetAlert2 Konfirmasi Hapus
+            function confirmDelete(playlistId) {
+                Swal.fire({
+                    title: 'Pindahkan ke sampah?',
+                    text: "Playlist akan dipindahkan ke daftar Deleted Playlists.",
+                    icon: 'warning',
+                    width: '380px',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    buttonsStyling: false,
+                    customClass: {
+                        popup: 'swal-custom-popup',
+                        title: 'swal-custom-title',
+                        htmlContainer: 'swal-custom-html',
+                        confirmButton: 'swal-btn-confirm-delete',
+                        cancelButton: 'swal-btn-cancel'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('delete-form-' + playlistId).submit();
+                    }
+                });
+            }
 
-        // SweetAlert2 Konfirmasi Recover
-        function confirmRecover(playlistId) {
-            Swal.fire({
-                title: 'Pulihkan playlist?',
-                text: "Playlist akan dikembalikan ke daftar aktif.",
-                icon: 'question',
-                width: '380px',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, pulihkan!',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                buttonsStyling: false,
-                customClass: {
-                    popup: 'swal-custom-popup',
-                    title: 'swal-custom-title',
-                    htmlContainer: 'swal-custom-html',
-                    confirmButton: 'swal-btn-confirm-recover',
-                    cancelButton: 'swal-btn-cancel'
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('recover-form-' + playlistId).submit();
-                }
-            });
-        }
+            // SweetAlert2 Konfirmasi Recover
+            function confirmRecover(playlistId) {
+                Swal.fire({
+                    title: 'Pulihkan playlist?',
+                    text: "Playlist akan dikembalikan ke daftar aktif.",
+                    icon: 'question',
+                    width: '380px',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, pulihkan!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    buttonsStyling: false,
+                    customClass: {
+                        popup: 'swal-custom-popup',
+                        title: 'swal-custom-title',
+                        htmlContainer: 'swal-custom-html',
+                        confirmButton: 'swal-btn-confirm-recover',
+                        cancelButton: 'swal-btn-cancel'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('recover-form-' + playlistId).submit();
+                    }
+                });
+            }
 
-        let currentPlaylist = [];
-        let currentIndex = 0;
-        let currentPlaylistId = '';
-        let imageTimer = null;
-        let selectedPlaylistId = null; // <-- Di sini tempat deklarasi variabel pilihan playlist
+            let currentPlaylist = [];
+            let currentIndex = 0;
+            let currentPlaylistId = '';
+            let imageTimer = null;
+            let selectedPlaylistId = null; // <-- Di sini tempat deklarasi variabel pilihan playlist
 
-        document.addEventListener("DOMContentLoaded", function() {
-            document.querySelectorAll('.playlist-row').forEach(row => {
-                row.addEventListener('click', function() {
-                    // Ambil ID playlist dari atribut data
-                    selectedPlaylistId = this.getAttribute('data-playlist-id');
+            document.addEventListener("DOMContentLoaded", function() {
+                document.querySelectorAll('.playlist-row').forEach(row => {
+                    row.addEventListener('click', function() {
+                        // Ambil ID playlist dari atribut data
+                        selectedPlaylistId = this.getAttribute('data-playlist-id');
+                    });
                 });
             });
-        });
 
-        function startPlaylist(videos, playlistId) {
-            if (!videos || videos.length === 0) return;
+            function startPlaylist(videos, playlistId) {
+                if (!videos || videos.length === 0) return;
 
-            currentPlaylist = videos;
-            currentIndex = 0;
-            currentPlaylistId = playlistId;
-
-            if (imageTimer) clearTimeout(imageTimer);
-
-            playCurrentItem();
-        }
-
-        function playCurrentItem() {
-            const placeholder = document.getElementById('tv-placeholder');
-            const videoPlayer = document.getElementById('tv-video-player');
-            const videoSource = document.getElementById('tv-video-source');
-            const imagePlayer = document.getElementById('tv-image-player');
-            const statusTitle = document.getElementById('playing-status-title');
-
-            const item = currentPlaylist[currentIndex];
-
-            placeholder.classList.add('hidden');
-            statusTitle.innerText = `Now Playing: Playlist #P${currentPlaylistId}`;
-
-            const extension = item.url.split('.').pop().split('?')[0].toLowerCase();
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
-
-            if (isImage) {
-                videoPlayer.classList.add('hidden');
-                videoPlayer.pause();
-
-                imagePlayer.src = item.url;
-                imagePlayer.classList.remove('hidden');
-
-                let duration = (item.duration || 5) * 1000;
+                currentPlaylist = videos;
+                currentIndex = 0;
+                currentPlaylistId = playlistId;
 
                 if (imageTimer) clearTimeout(imageTimer);
-                imageTimer = setTimeout(() => {
-                    currentIndex = (currentIndex + 1) % currentPlaylist.length;
-                    playCurrentItem();
-                }, duration);
 
-            } else {
-                imagePlayer.classList.add('hidden');
-                videoPlayer.classList.remove('hidden');
-
-                videoSource.src = item.url;
-                videoPlayer.load();
-
-                videoPlayer.play().catch(error => {
-                    videoPlayer.muted = true;
-                    videoPlayer.play();
-                });
-
-                videoPlayer.onended = function() {
-                    currentIndex = (currentIndex + 1) % currentPlaylist.length;
-                    playCurrentItem();
-                };
-            }
-        }
-    </script>
-
-    <script>
-        // 1. Variabel dan script klik tabel
-        let selectedPlaylistId = null;
-
-        document.addEventListener("DOMContentLoaded", function() {
-            document.querySelectorAll('.playlist-row').forEach(row => {
-                row.addEventListener('click', function() {
-                    let rawId = this.getAttribute('data-playlist-id');
-                    selectedPlaylistId = rawId.replace('#', '');
-                });
-            });
-        });
-    </script>
-
-    <!-- Script SweetAlert & AJAX untuk Tombol Show to Signage -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        document.getElementById('btnShowSignage').addEventListener('click', function() {
-            if (!selectedPlaylistId) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Pilih Playlist Dulu',
-                    text: 'Silakan klik salah satu playlist dari tabel untuk melihat preview.',
-                    confirmButtonColor: '#0083b0'
-                });
-                return;
+                playCurrentItem();
             }
 
-            // <--- TARUH / TIMPA KODE YANG BARU DI DALAM SINI --->
-            Swal.fire({
-                title: 'Tampilkan ke Signage?',
-                text: "Apakah Anda yakin ingin menampilkan playlist ini ke layar TV signage sekarang?",
-                icon: 'question',
-                showCancelButton: true,
-                reverseButtons: true, // Tombol batal di kiri
-                confirmButtonColor: '#0083b0',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Tampilkan Sekarang',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.showLoading();
+            function playCurrentItem() {
+                const placeholder = document.getElementById('tv-placeholder');
+                const videoPlayer = document.getElementById('tv-video-player');
+                const videoSource = document.getElementById('tv-video-source');
+                const imagePlayer = document.getElementById('tv-image-player');
+                const statusTitle = document.getElementById('playing-status-title');
 
-                    fetch(`/dashboard/show/${selectedPlaylistId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
-                            }
-                        })
-                        .then(async response => {
-                            const isJson = response.headers.get('content-type')?.includes(
-                                'application/json');
-                            const data = isJson ? await response.json() : null;
+                const item = currentPlaylist[currentIndex];
 
-                            if (!response.ok) {
-                                const errorMsg = data && data.message ? data.message :
-                                    'Server error status: ' + response.status;
-                                throw new Error(errorMsg);
-                            }
-                            return data;
-                        })
-                        .then(data => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil!',
-                                text: data.message ||
-                                    'Playlist berhasil ditampilkan ke signage.',
-                            }).then(() => {
-                                location.reload();
-                            });
-                        })
-                        .catch(error => {
-                            console.error('Error detail:', error);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: error.message || 'Terjadi kesalahan sistem.',
-                            });
-                        });
+                placeholder.classList.add('hidden');
+                statusTitle.innerText = `Now Playing: Playlist #P${currentPlaylistId}`;
+
+                const extension = item.url.split('.').pop().split('?')[0].toLowerCase();
+                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
+
+                if (isImage) {
+                    videoPlayer.classList.add('hidden');
+                    videoPlayer.pause();
+
+                    imagePlayer.src = item.url;
+                    imagePlayer.classList.remove('hidden');
+
+                    let duration = (item.duration || 5) * 1000;
+
+                    if (imageTimer) clearTimeout(imageTimer);
+                    imageTimer = setTimeout(() => {
+                        currentIndex = (currentIndex + 1) % currentPlaylist.length;
+                        playCurrentItem();
+                    }, duration);
+
+                } else {
+                    imagePlayer.classList.add('hidden');
+                    videoPlayer.classList.remove('hidden');
+
+                    videoSource.src = item.url;
+                    videoPlayer.load();
+
+                    videoPlayer.play().catch(error => {
+                        videoPlayer.muted = true;
+                        videoPlayer.play();
+                    });
+
+                    videoPlayer.onended = function() {
+                        currentIndex = (currentIndex + 1) % currentPlaylist.length;
+                        playCurrentItem();
+                    };
                 }
+            }
+        </script>
+
+        <script>
+            // 1. Variabel dan script klik tabel
+            let selectedPlaylistId = null;
+
+            document.addEventListener("DOMContentLoaded", function() {
+                document.querySelectorAll('.playlist-row').forEach(row => {
+                    row.addEventListener('click', function() {
+                        let rawId = this.getAttribute('data-playlist-id');
+                        selectedPlaylistId = rawId.replace('#', '');
+                    });
+                });
             });
-        });
-    </script>
-@endsection
+        </script>
+
+        <!-- Script SweetAlert & AJAX untuk Tombol Show to Signage -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            document.getElementById('btnShowSignage').addEventListener('click', function() {
+                if (!selectedPlaylistId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Pilih Playlist Dulu',
+                        text: 'Silakan klik salah satu playlist dari tabel untuk melihat preview.',
+                        confirmButtonColor: '#0083b0'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Tampilkan ke Signage?',
+                    text: "Apakah Anda yakin ingin menampilkan playlist ini ke layar TV signage sekarang?",
+                    icon: 'question',
+                    showCancelButton: true,
+                    reverseButtons: true, // Tombol batal di kiri
+                    confirmButtonColor: '#0083b0',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'Ya, Tampilkan Sekarang',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.showLoading();
+
+                        fetch(`/dashboard/show/${selectedPlaylistId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(async response => {
+                                const isJson = response.headers.get('content-type')?.includes(
+                                    'application/json');
+                                const data = isJson ? await response.json() : null;
+
+                                if (!response.ok) {
+                                    const errorMsg = data && data.message ? data.message :
+                                        'Server error status: ' + response.status;
+                                    throw new Error(errorMsg);
+                                }
+                                return data;
+                            })
+                            .then(data => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text: data.message ||
+                                        'Playlist berhasil ditampilkan ke signage.',
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error detail:', error);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text: error.message || 'Terjadi kesalahan sistem.',
+                                });
+                            });
+                    }
+                });
+            });
+        </script>
+    @endsection
