@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PlaylistController;
 use App\Http\Controllers\SignageController;
+use App\Http\Controllers\GoogleDriveController;
 
 // Redirect Halaman Utama ke Login
 Route::get('/', function () {
@@ -85,3 +86,6 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/signage-view', [SignageController::class, 'index']);
     Route::get('/api/signage/playlist', [SignageController::class, 'getPlaylistData']);
 });
+
+Route::get('/google/login', [GoogleDriveController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/google/callback', [GoogleDriveController::class, 'handleGoogleCallback']);

@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\GoogleDriveController;
 
 class UploadController extends Controller
 {
-    // Menampilkan halaman upload
     public function index()
     {
         return view('upload');
@@ -16,46 +16,66 @@ class UploadController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Validasi input dari form
-        $validatedData = $request->validate([
-            'content_title'   => 'required|string|max:100',
-            'start_datetime'  => 'required|date',
-            'end_datetime'    => 'required|date|after:start_datetime',
-            'category'        => 'required|string', // Pastikan valuenya 'Event' / 'Daily' sesuai DB atau form
-            'duration'        => 'required|string|regex:/^\d{2}:\d{2}$/', // Format MM:SS dari frontend
-            'file' => 'required|file|mimes:mp4,mov,avi,jpg,jpeg,png|max:51200', 
+        // Validasi fleksibel: bisa terima file fisik ATAU URL dari Google Drive Picker
+        $request->validate([
+            'content_title'         => 'required|string|max:100',
+            'start_datetime'        => 'required|date',
+            'end_datetime'          => 'required|date|after:start_datetime',
+            'category'              => 'required|string',
+            'duration'              => 'required|string',
+            'content_file_path_url' => 'nullable|string', // Menerima URL dari Google Drive Picker
+            'file'                  => 'nullable|file|mimes:mp4,mov,avi,jpg,jpeg,png|max:51200', // File fisik opsional jika pakai picker
         ]);
 
-        // 2. Konversi format durasi "MM:SS" dari frontend menjadi total detik (INT) untuk database
+        // Konversi durasi format MM:SS ke detik
         $durationInput = $request->input('duration', '00:00');
-        list($mins, $secs) = explode(':', $durationInput);
-        $contentDuration = (int)$mins * 60 + (int)$secs;
-
-        // 3. Proses Upload File & Deteksi Ekstensi File
-        $filePathUrl = null;
-        $contentType = '';
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $contentType = $file->getClientOriginalExtension(); // Mengambil ekstensi file ('mp4', 'png', dll)
-            
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $filePathUrl = $file->storeAs('uploads/contents', $filename, 'public');
+        if (str_contains($durationInput, ':')) {
+            list($mins, $secs) = explode(':', $durationInput);
+            $contentDataDuration = (int)$mins * 60 + (int)$secs;
+        } else {
+            $contentDataDuration = (int)$durationInput;
         }
 
-        // 4. Simpan data ke database sesuai struktur tabel `contents` kamu
+        $filePathUrl = '';
+        $contentType = 'unknown';
+
+        // SKENARIO 1: User memilih file lewat Pop-up Google Drive Picker
+        if ($request->filled('content_file_path_url')) {
+            $filePathUrl = $request->input('content_file_path_url');
+            $contentType = 'gdrive'; // Penanda file dari Google Drive Picker
+        }
+        // SKENARIO 2: User mengupload file fisik via Drag & Drop (Cara Lama)
+        elseif ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $contentType = $file->getClientOriginalExtension();
+
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $tempPath = $file->getRealPath();
+            $mimeType = $file->getMimeType();
+
+            // Upload ke Google Drive via Backend Controller kamu
+            $uploadedFile = GoogleDriveController::uploadFile($tempPath, $filename, $mimeType);
+            $filePathUrl = $uploadedFile['link'];
+        } else {
+            return redirect()->back()->withErrors(['content_file_path_url' => 'Silakan pilih file terlebih dahulu!'])->withInput();
+        }
+
+        // Simpan ke database tabel contents
         DB::table('contents')->insert([
-            'users_id'              => Auth::id(), // Pastikan tipe data users_id di tabel users & contents klop (varchar/int)
+            'users_id'              => Auth::id() ?? 1,
             'content_title'         => $request->input('content_title'),
             'content_file_path_url' => $filePathUrl,
             'content_category'      => $request->input('category'),
             'content_type'          => $contentType,
-            'content_duration'      => $contentDuration, // Masuk sebagai angka (detik)
+            'content_duration'      => $contentDataDuration,
             'content_start_date'    => $request->input('start_datetime'),
             'content_end_date'      => $request->input('end_datetime'),
-            'content_status'        => true, // Default Active
+            'content_status'        => true,
             'status_del'            => '0',
+            'created_at'            => now(),
+            'updated_at'            => now(),
         ]);
 
-        return redirect()->back()->with('success', 'Konten berhasil di-upload dan disimpan!');
+        return redirect()->back()->with('success', 'Konten berhasil disimpan ke database!');
     }
 }
