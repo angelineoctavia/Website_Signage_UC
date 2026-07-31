@@ -22,7 +22,6 @@
 
         .swal-btn-confirm-delete {
             background-color: #F27D00 !important;
-            /* uc-orange */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
@@ -35,7 +34,6 @@
 
         .swal-btn-confirm-recover {
             background-color: #0084FF !important;
-            /* uc-blue */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
@@ -48,7 +46,6 @@
 
         .swal-btn-cancel {
             background-color: #6B7280 !important;
-            /* abu-abu kalem */
             color: #FFFFFF !important;
             padding: 8px 16px !important;
             border-radius: 10px !important;
@@ -79,7 +76,7 @@
         <!-- Greeting -->
         <h1 class="text-2xl font-bold text-uc-dark">Halo, {{ $firstName }}!</h1>
 
-        <!-- BARIS ATAS: Statistik/Card & Preview Signage -->
+        <!-- ================= BARIS ATAS: Statistik/Card & Preview Signage ================= -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
             <!-- KOLOM KIRI ATAS (3 Card Statistik & Tabel Playlists) - 8 Cols -->
@@ -128,155 +125,150 @@
 
                     <!-- TAB 1: PLAYLISTS AKTIF -->
                     <div id="tab-playlists-content">
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-                                <table class="w-full text-left text-xs">
-                                    <thead class="sticky top-0 z-10">
-                                        <tr class="bg-uc-yellow text-uc-dark font-semibold">
-                                            <th class="p-3 border-b">ID</th>
-                                            <th class="p-3 border-b">Tanggal</th>
-                                            <th class="p-3 border-b text-center">Order</th>
-                                            <th class="p-3 border-b">Judul Konten</th>
-                                            <th class="p-3 border-b">Durasi</th>
-                                            <th class="p-3 border-b text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100 text-gray-700">
-                                        @php
-                                            $groupedPlaylists = $playlistsData->groupBy('playlist_id');
-                                        @endphp
-                                        @forelse($groupedPlaylists as $playlistId => $items)
-                                            @foreach ($items as $index => $item)
-                                                <tr class="playlist-row cursor-pointer hover:bg-amber-50/40 transition-colors"
-                                                    data-playlist-id="{{ $playlistId }}">
-                                                    @if ($index === 0)
-                                                        <td class="p-3 font-semibold text-uc-dark align-middle border-r border-gray-50 bg-gray-50/50"
-                                                            rowspan="{{ count($items) }}">
-                                                            #P{{ $item->playlist_id }}
-                                                        </td>
-                                                        <td class="p-3 align-middle border-r border-gray-50 bg-gray-50/50"
-                                                            rowspan="{{ count($items) }}">
-                                                            {{ date('d/m/Y', strtotime($item->playlist_date)) }}
-                                                        </td>
-                                                    @endif
-                                                    <td class="p-3 text-center font-bold text-uc-orange">
-                                                        {{ $item->playlist_order }}</td>
-                                                    <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}
-                                                    </td>
-                                                    <td class="p-3 text-uc-gray">{{ $item->content_duration }}s</td>
-                                                    @if ($index === 0)
-                                                        <td class="p-3 text-center align-middle bg-gray-50/50 space-y-2"
-                                                            rowspan="{{ count($items) }}">
-                                                            @php
-                                                                $playlistVideos = $items
-                                                                    ->map(function ($i) {
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
+                            <!-- Header Kartu -->
+                            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-table"></i>
+                                    <span>Playlists</span>
+                                </div>
+                            </div>
+                            <!-- Kontainer Tabel -->
+                            <div class="p-3 bg-white flex-1 flex flex-col overflow-hidden">
+                                <div class="border border-gray-200 rounded-none overflow-x-auto overflow-y-auto flex-1">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead class="sticky top-0 z-10">
+                                            <tr class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
+                                                <th class="p-3">ID</th>
+                                                <th class="p-3">Tanggal</th>
+                                                <th class="p-3 text-center">Order</th>
+                                                <th class="p-3">Judul Konten</th>
+                                                <th class="p-3">Durasi</th>
+                                                <th class="p-3 text-center">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200 text-gray-700">
+                                            @php
+                                                $groupedPlaylists = $playlistsData->groupBy('playlist_id');
+                                            @endphp
+                                            @forelse($groupedPlaylists as $playlistId => $items)
+                                                @foreach ($items as $index => $item)
+                                                    <tr class="playlist-row cursor-pointer hover:bg-orange-50/50 transition-colors"
+                                                        data-playlist-id="{{ $playlistId }}">
+                                                        @if ($index === 0)
+                                                            <td class="p-3 font-semibold text-uc-dark align-middle border-r border-gray-100 bg-gray-50/50"
+                                                                rowspan="{{ count($items) }}">
+                                                                #P{{ $item->playlist_id }}
+                                                            </td>
+                                                            <td class="p-3 align-middle border-r border-gray-100 bg-gray-50/50"
+                                                                rowspan="{{ count($items) }}">
+                                                                {{ date('d/m/Y', strtotime($item->playlist_date)) }}
+                                                            </td>
+                                                        @endif
+                                                        <td class="p-3 text-center font-bold text-uc-orange">{{ $item->playlist_order }}</td>
+                                                        <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}</td>
+                                                        <td class="p-3 text-gray-500">{{ $item->content_duration }}s</td>
+                                                        @if ($index === 0)
+                                                            <td class="p-3 text-center align-middle bg-gray-50/50 space-y-2"
+                                                                rowspan="{{ count($items) }}">
+                                                                @php
+                                                                    $playlistVideos = $items->map(function ($i) {
                                                                         $filePath = $i->content_file_path_url ?? '';
-                                                                        $fullUrl =
-                                                                            str_starts_with($filePath, 'http://') ||
-                                                                            str_starts_with($filePath, 'https://')
-                                                                                ? $filePath
-                                                                                : asset(
-                                                                                    'storage/' . ltrim($filePath, '/'),
-                                                                                );
-                                                                        $extension = strtolower(
-                                                                            pathinfo($filePath, PATHINFO_EXTENSION),
-                                                                        );
-                                                                        $isImage = in_array($extension, [
-                                                                            'jpg',
-                                                                            'jpeg',
-                                                                            'png',
-                                                                            'gif',
-                                                                            'webp',
-                                                                        ]);
+                                                                        $fullUrl = str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')
+                                                                            ? $filePath
+                                                                            : asset('storage/' . ltrim($filePath, '/'));
+                                                                        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+                                                                        $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
                                                                         return [
                                                                             'url' => $fullUrl,
                                                                             'title' => $i->content_title,
-                                                                            'duration' =>
-                                                                                $i->content_duration ??
-                                                                                ($isImage ? 5 : 10),
+                                                                            'duration' => $i->content_duration ?? ($isImage ? 5 : 10),
                                                                         ];
-                                                                    })
-                                                                    ->values();
-                                                            @endphp
-                                                            <!-- Tombol Show Now -->
-                                                            <button type="button"
-                                                                onclick="startPlaylist({{ json_encode($playlistVideos) }}, '{{ $playlistId }}')"
-                                                                class="bg-uc-green hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
-                                                                <i class="fa-solid fa-play text-[9px]"></i>
-                                                                <span>Show Now</span>
-                                                            </button>
-                                                            <!-- Tombol Delete Terintegrasi SweetAlert2 -->
-                                                            <form id="delete-form-{{ $playlistId }}"
-                                                                action="{{ route('playlist.destroy', $playlistId) }}"
-                                                                method="POST" class="inline-block w-full">
-                                                                @csrf
-                                                                @method('PATCH')
+                                                                    })->values();
+                                                                @endphp
                                                                 <button type="button"
-                                                                    onclick="confirmDelete('{{ $playlistId }}')"
-                                                                    class="bg-[#EB5F5F] hover:bg-red-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
-                                                                    <i class="fa-solid fa-trash-can text-[9px]"></i>
-                                                                    <span>Delete</span>
+                                                                    onclick="startPlaylist({{ json_encode($playlistVideos) }}, '{{ $playlistId }}')"
+                                                                    class="bg-uc-green hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
+                                                                    <i class="fa-solid fa-play text-[9px]"></i>
+                                                                    <span>Show Now</span>
                                                                 </button>
-                                                            </form>
-                                                        </td>
-                                                    @endif
+                                                                <form id="delete-form-{{ $playlistId }}"
+                                                                    action="{{ route('playlist.destroy', $playlistId) }}"
+                                                                    method="POST" class="inline-block w-full">
+                                                                    @csrf
+                                                                    @method('PATCH')
+                                                                    <button type="button"
+                                                                        onclick="confirmDelete('{{ $playlistId }}')"
+                                                                        class="bg-[#EB5F5F] hover:bg-red-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center justify-center space-x-1.5 mx-auto text-[11px] shadow-sm w-full">
+                                                                        <i class="fa-solid fa-trash-can text-[9px]"></i>
+                                                                        <span>Delete</span>
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                        @endif
+                                                    </tr>
+                                                @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="p-6 text-center text-gray-400 italic">Belum ada playlist aktif saat ini.</td>
                                                 </tr>
-                                            @endforeach
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="p-6 text-center text-gray-400">Belum ada playlist
-                                                    aktif saat ini.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- TAB 2: DELETED PLAYLISTS -->
                     <div id="tab-deleted-content" class="hidden">
-                        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-                                <table class="w-full text-left text-xs">
-                                    <thead class="sticky top-0 z-10">
-                                        <tr class="bg-[#EB5F5F] text-white font-semibold">
-                                            <th class="p-3 border-b">ID</th>
-                                            <th class="p-3 border-b">Tanggal</th>
-                                            <th class="p-3 border-b text-center">Total Items</th>
-                                            <th class="p-3 border-b text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-100 text-gray-700">
-                                        @forelse($trashedPlaylists ?? [] as $trash)
-                                            <tr class="hover:bg-red-50/40 transition-colors">
-                                                <td class="p-3 font-semibold text-uc-dark">#P{{ $trash->playlist_id }}</td>
-                                                <td class="p-3">{{ date('d/m/Y', strtotime($trash->playlist_date)) }}
-                                                </td>
-                                                <td class="p-3 text-center font-bold">{{ $trash->details->count() }} Items
-                                                </td>
-                                                <td class="p-3 text-center">
-                                                    <form id="recover-form-{{ $trash->playlist_id }}"
-                                                        action="{{ route('playlist.restore', $trash->playlist_id) }}"
-                                                        method="POST" class="inline-block">
-                                                        @csrf
-                                                        @method('PATCH')
-                                                        <button type="button"
-                                                            onclick="confirmRecover('{{ $trash->playlist_id }}')"
-                                                            class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 inline-flex items-center space-x-1 text-[11px] shadow-sm">
-                                                            <i class="fa-solid fa-rotate-left"></i>
-                                                            <span>Recover</span>
-                                                        </button>
-                                                    </form>
-                                                </td>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
+                            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-trash"></i>
+                                    <span>Deleted Playlists</span>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-white flex-1 flex flex-col overflow-hidden">
+                                <div class="border border-gray-200 rounded-none overflow-x-auto overflow-y-auto flex-1">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead class="sticky top-0 z-10">
+                                            <tr class="bg-gray-100 text-gray-700 font-semibold border-b border-gray-200">
+                                                <th class="p-3">ID</th>
+                                                <th class="p-3">Tanggal</th>
+                                                <th class="p-3 text-center">Total Items</th>
+                                                <th class="p-3 text-center">Aksi</th>
                                             </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="4" class="p-6 text-center text-gray-400">Sampah kosong.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200 text-gray-700">
+                                            @forelse($trashedPlaylists ?? [] as $index => $trash)
+                                                <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
+                                                    <td class="p-3 font-semibold text-uc-dark">#P{{ $trash->playlist_id }}</td>
+                                                    <td class="p-3">{{ date('d/m/Y', strtotime($trash->playlist_date)) }}</td>
+                                                    <td class="p-3 text-center font-bold">{{ $trash->details->count() }} Items</td>
+                                                    <td class="p-3 text-center">
+                                                        <form id="recover-form-{{ $trash->playlist_id }}"
+                                                            action="{{ route('playlist.restore', $trash->playlist_id) }}"
+                                                            method="POST" class="inline-block">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <button type="button"
+                                                                onclick="confirmRecover('{{ $trash->playlist_id }}')"
+                                                                class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1.5 rounded-xl transition-all active:scale-95 inline-flex items-center space-x-1 text-[11px] shadow-sm">
+                                                                <i class="fa-solid fa-rotate-left"></i>
+                                                                <span>Recover</span>
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="4" class="p-6 text-center text-gray-400 italic">Sampah kosong.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -356,7 +348,6 @@
                                             : collect();
                                     @endphp
                                     @forelse($sortedContents as $index => $content)
-                                        <!-- Baris selang-seling manual pakai ternary biar warnanya pasti (Putih & Abu-abu terang) -->
                                         <tr
                                             class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
                                             <td class="p-3 font-medium text-uc-dark">{{ $content->content_title }}</td>
@@ -411,7 +402,6 @@
                                             : collect();
                                     @endphp
                                     @forelse($signageHistories as $index => $history)
-                                        <!-- Baris selang-seling manual pakai ternary -->
                                         <tr
                                             class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
                                             <td class="p-3 font-semibold text-uc-dark">#P{{ $history->playlist_id }}</td>
@@ -436,7 +426,7 @@
                 </div>
             </div>
         </div>
-        
+
         <!-- SCRIPT TAB SWITCHER, SWEETALERT CONFIRM, & PLAYER -->
         <script>
             function switchTab(tab) {
@@ -449,7 +439,6 @@
                     playlistsContent.classList.remove('hidden');
                     deletedContent.classList.add('hidden');
 
-                    // Playlists aktif (Oranye F27D00), Deleted tidak aktif (Abu-abu 5F6870)
                     playlistsBtn.className =
                         "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#F27D00] text-white shadow-sm";
                     deletedBtn.className =
@@ -458,7 +447,6 @@
                     playlistsContent.classList.add('hidden');
                     deletedContent.classList.remove('hidden');
 
-                    // Playlists tidak aktif (Abu-abu 5F6870), Deleted aktif (Oranye F27D00)
                     playlistsBtn.className =
                         "px-4 py-2 rounded-lg text-xs font-medium transition-all bg-[#5F6870] text-white shadow-sm";
                     deletedBtn.className =
@@ -466,7 +454,6 @@
                 }
             }
 
-            // SweetAlert2 Konfirmasi Hapus
             function confirmDelete(playlistId) {
                 Swal.fire({
                     title: 'Pindahkan ke sampah?',
@@ -492,7 +479,6 @@
                 });
             }
 
-            // SweetAlert2 Konfirmasi Recover
             function confirmRecover(playlistId) {
                 Swal.fire({
                     title: 'Pulihkan playlist?',
@@ -522,13 +508,13 @@
             let currentIndex = 0;
             let currentPlaylistId = '';
             let imageTimer = null;
-            let selectedPlaylistId = null; // <-- Di sini tempat deklarasi variabel pilihan playlist
+            let selectedPlaylistId = null;
 
             document.addEventListener("DOMContentLoaded", function() {
                 document.querySelectorAll('.playlist-row').forEach(row => {
                     row.addEventListener('click', function() {
-                        // Ambil ID playlist dari atribut data
-                        selectedPlaylistId = this.getAttribute('data-playlist-id');
+                        let rawId = this.getAttribute('data-playlist-id');
+                        selectedPlaylistId = rawId.replace('#', '');
                     });
                 });
             });
@@ -595,20 +581,6 @@
             }
         </script>
 
-        <script>
-            // 1. Variabel dan script klik tabel
-            let selectedPlaylistId = null;
-
-            document.addEventListener("DOMContentLoaded", function() {
-                document.querySelectorAll('.playlist-row').forEach(row => {
-                    row.addEventListener('click', function() {
-                        let rawId = this.getAttribute('data-playlist-id');
-                        selectedPlaylistId = rawId.replace('#', '');
-                    });
-                });
-            });
-        </script>
-
         <!-- Script SweetAlert & AJAX untuk Tombol Show to Signage -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
@@ -628,7 +600,7 @@
                     text: "Apakah Anda yakin ingin menampilkan playlist ini ke layar TV signage sekarang?",
                     icon: 'question',
                     showCancelButton: true,
-                    reverseButtons: true, // Tombol batal di kiri
+                    reverseButtons: true,
                     confirmButtonColor: '#0083b0',
                     cancelButtonColor: '#d33',
                     confirmButtonText: 'Ya, Tampilkan Sekarang',
@@ -679,4 +651,5 @@
                 });
             });
         </script>
-    @endsection
+    </div>
+@endsection

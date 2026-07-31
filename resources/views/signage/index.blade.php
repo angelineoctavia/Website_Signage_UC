@@ -98,7 +98,9 @@
         let hideTimer;
         const tvFrame = document.getElementById('tv-frame');
         const header = document.getElementById('floating-header');
-        const CACHE_NAME = 'signage-offline-cache-v1';
+
+        // PENTING: nama ini HARUS SAMA PERSIS dengan CACHE_NAME di sw.js
+        const CACHE_NAME = 'signage-offline-cache-v2';
 
         function handleCursorMovement() {
             header.classList.add('visible');
@@ -111,12 +113,26 @@
         tvFrame.addEventListener('mousemove', handleCursorMovement);
         tvFrame.addEventListener('touchstart', handleCursorMovement);
 
-        // Fungsi Utama Inisialisasi Signage dengan True Offline Caching (Safe Version)
+        // Daftarkan Service Worker (WAJIB agar refresh/offline bisa jalan)
+        async function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                try {
+                    const reg = await navigator.serviceWorker.register('/sw.js');
+                    console.log('Service Worker terdaftar dengan scope:', reg.scope);
+                } catch (err) {
+                    console.warn('Gagal mendaftarkan Service Worker:', err);
+                }
+            } else {
+                console.warn('Browser ini tidak mendukung Service Worker.');
+            }
+        }
+
+        // Fungsi Utama Inisialisasi Signage dengan True Offline Caching & Fallback Aman
         async function initSignagePlayer() {
             const statusText = document.getElementById('status-text');
 
             try {
-                // 1. Ambil data playlist terbaru dari server admin
+                // 1. Coba ambil data playlist terbaru dari server admin
                 const response = await fetch('/api/signage/playlist');
                 if (!response.ok) throw new Error('Gagal terhubung ke server');
 
@@ -129,7 +145,7 @@
                     return;
                 }
 
-                // 2. Simpan metadata playlist ke localStorage
+                // 2. Simpan metadata playlist ke localStorage untuk cadangan offline
                 localStorage.setItem('cached_playlist', JSON.stringify(playlist));
 
                 // 3. Download dan simpan fisik file media ke Cache Storage browser TV secara aman
@@ -137,7 +153,6 @@
                     const cache = await caches.open(CACHE_NAME);
                     statusText.textContent = "Mengunduh aset media ke memori TV...";
 
-                    // Loop satu per satu agar jika ada 1 file error, tidak membuat script berhenti
                     for (const item of playlist.items) {
                         try {
                             const mediaResponse = await fetch(item.url);
@@ -157,17 +172,20 @@
                 startLoop(playlist.items);
 
             } catch (error) {
-                console.warn("Mode Offline Aktif:", error);
+                console.warn("Mode Offline Aktif / Gagal Fetch:", error);
                 statusText.textContent = "Koneksi terputus. Memuat dari Cache Offline...";
 
-                // Fallback: Ambil data dari localStorage & Cache API saat offline
+                // FALLBACK: Ambil data dari localStorage saat offline atau gagal fetch (termasuk saat di-refresh)
                 const cachedData = localStorage.getItem('cached_playlist');
                 if (cachedData) {
                     const playlist = JSON.parse(cachedData);
-                    startLoop(playlist.items);
-                } else {
-                    statusText.textContent = "Tidak ada koneksi internet & cache lokal kosong.";
+                    if (playlist.items && playlist.items.length > 0) {
+                        startLoop(playlist.items);
+                        return;
+                    }
                 }
+
+                statusText.textContent = "Tidak ada koneksi internet & cache lokal kosong.";
             }
         }
 
@@ -202,7 +220,8 @@
                     video.src = item.url; // Browser otomatis mengambil dari cache jika offline
                     video.className = 'w-full h-full object-cover';
                     video.autoplay = true;
-                    video.muted = true;
+                    video.muted = false; // Tizen SSSP (signage) umumnya tidak strict soal autoplay+audio seperti Chrome desktop
+                    video.playsInline = true;
                     container.appendChild(video);
 
                     video.onended = () => {
@@ -214,13 +233,30 @@
                         currentIndex = (currentIndex + 1) % items.length;
                         playNext();
                     };
+
+                    // Fallback: kalau di device tertentu ternyata tetap ditolak browser,
+                    // coba lagi dengan mute daripada macet diam total
+                    const playPromise = video.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch((err) => {
+                            console.warn('Autoplay dengan suara gagal, coba ulang dengan mute:', err);
+                            video.muted = true;
+                            video.play().catch(() => {
+                                currentIndex = (currentIndex + 1) % items.length;
+                                playNext();
+                            });
+                        });
+                    }
                 }
             }
 
             playNext();
         }
 
-        window.onload = initSignagePlayer;
+        window.onload = async () => {
+            await registerServiceWorker();
+            initSignagePlayer();
+        };
     </script>
 </body>
 
