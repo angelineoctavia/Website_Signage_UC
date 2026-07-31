@@ -19,7 +19,7 @@ class GoogleDriveController extends Controller
         $client->addScope(Google_Service_Drive::DRIVE_FILE);
         $client->setAccessType('offline');
         $client->setPrompt('select_account consent');
-        
+
         return $client;
     }
 
@@ -34,13 +34,13 @@ class GoogleDriveController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         $client = $this->getClient();
-        
+
         if ($request->has('code')) {
             $token = $client->fetchAccessTokenWithAuthCode($request->get('code'));
-            
+
             // Simpan token ke storage app (storage/app/google-token.json)
             Storage::put('google-token.json', json_encode($token));
-            
+
             return "Berhasil menghubungkan Google Drive! Token sudah tersimpan aman. Kamu sekarang bisa menutup halaman ini.";
         }
 
@@ -50,6 +50,14 @@ class GoogleDriveController extends Controller
     // 3. Fungsi statis untuk mengupload file dari controller lain/signage
     public static function uploadFile($filePath, $fileName, $mimeType)
     {
+        $customTempDir = storage_path('app/tmp');
+        if (!is_dir($customTempDir)) {
+            mkdir($customTempDir, 0755, true);
+        }
+        ini_set('sys_temp_dir', $customTempDir);
+        putenv("TMP={$customTempDir}");
+        putenv("TEMP={$customTempDir}");
+
         $client = new Google_Client();
         $client->setClientId(env('GOOGLE_CLIENT_ID'));
         $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
@@ -75,11 +83,11 @@ class GoogleDriveController extends Controller
         $service = new Google_Service_Drive($client);
 
         // Ambil Folder ID dari file .env secara dinamis
-        $folderId = env('GOOGLE_DRIVE_FOLDER_ID'); 
+        $folderId = env('GOOGLE_DRIVE_FOLDER_ID');
 
         $fileMetadata = new Google_Service_Drive_DriveFile();
         $fileMetadata->setName($fileName);
-        
+
         if (!empty($folderId)) {
             $fileMetadata->setParents([$folderId]);
         }

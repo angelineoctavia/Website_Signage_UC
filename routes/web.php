@@ -59,8 +59,8 @@ Route::middleware(['auth', 'role:1'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Upload
-    Route::get('/upload', [UploadController::class, 'index']);
-    Route::post('/upload', [UploadController::class, 'store']);
+    Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
+    Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
 
     // Profile & Password Settings
     Route::get('/account-settings', [ProfileController::class, 'index'])->name('profile.index');
