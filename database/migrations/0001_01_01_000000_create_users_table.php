@@ -15,6 +15,7 @@ return new class extends Migration
             $table->char('users_role', 1); // '1': Admin, '2': TV/Signage
             $table->string('users_email', 100)->unique();
             $table->date('users_acc_created');
+            $table->string('users_kota', 20);
             $table->string('status_del', 1)->default('0');
         });
     }

@@ -21,6 +21,7 @@ class User extends Authenticatable
         'users_name',
         'users_password',
         'users_role',
+        'users_kota',
         'users_email',
         'users_acc_created',
         'status_del'

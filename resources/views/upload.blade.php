@@ -80,24 +80,10 @@
                     </div>
 
                     <!-- KANAN: INPUT FIELDS -->
-                    <div class="lg:col-span-6 space-y-4">
+                    <div class="lg:col-span-6 pt-[34px] space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-uc-dark mb-1.5">Content Title</label>
                             <input type="text" name="content_title" placeholder="Masukkan judul konten..."
-                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors"
-                                required>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-uc-dark mb-1.5">Start Date & Time</label>
-                            <input type="datetime-local" name="start_datetime" id="start_datetime"
-                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors"
-                                required>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-uc-dark mb-1.5">End Date & Time</label>
-                            <input type="datetime-local" name="end_datetime" id="end_datetime"
                                 class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors"
                                 required>
                         </div>

@@ -109,6 +109,20 @@
                         </div>
                     </div>
 
+                    <!-- Kota Selection Field (NEW) -->
+                    <div class="relative border-b-2 border-gray-300 focus-within:border-uc-orange transition-colors py-0.5">
+                        <select name="users_kota" id="users_kota" required
+                            class="w-full bg-transparent pr-10 py-1.5 text-sm text-uc-gray focus:outline-none font-medium appearance-none cursor-pointer invalid:text-uc-gray">
+                            <option value="" disabled selected class="text-gray-400">Pilih Kampus / Kota...</option>
+                            <option value="Surabaya" class="text-uc-dark" {{ old('users_kota') == 'Surabaya' ? 'selected' : '' }}>Surabaya</option>
+                            <option value="Jakarta" class="text-uc-dark" {{ old('users_kota') == 'Jakarta' ? 'selected' : '' }}>Jakarta</option>
+                            <option value="Makassar" class="text-uc-dark" {{ old('users_kota') == 'Makassar' ? 'selected' : '' }}>Makassar</option>
+                        </select>
+                        <div class="absolute right-2 top-2.5 text-uc-dark pointer-events-none text-xs">
+                            <i class="fa-solid fa-building-columns"></i>
+                        </div>
+                    </div>
+
                     <!-- Password Field -->
                     <div
                         class="relative border-b-2 border-gray-300 focus-within:border-uc-orange transition-colors py-0.5">

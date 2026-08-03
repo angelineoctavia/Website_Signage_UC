@@ -17,14 +17,7 @@ class AuthController extends Controller
             'username'   => 'required|string|max:100',
             'email'      => 'required|email|unique:users,users_email',
             'users_role' => 'required|in:1,2',
-            'password' => [
-                'required',
-                'min:8',
-                'regex:/[a-z]/',
-                'regex:/[A-Z]/',
-                'regex:/[0-9]/',
-                'confirmed'
-            ],
+            'password' => ['required', 'min:8', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'confirmed'],
         ], [
             'users_role.required' => 'Silakan pilih role akun.',
             'users_role.in' => 'Role akun tidak valid.',
@@ -47,6 +40,7 @@ class AuthController extends Controller
             'users_email'       => $request->email,
             'users_password'    => Hash::make($request->password),
             'users_role'        => $request->users_role,
+            'users_kota' => $request->users_kota,
             'users_acc_created' => \Carbon\Carbon::now()->format('Y-m-d'),
             'status_del'        => '0'
         ]);

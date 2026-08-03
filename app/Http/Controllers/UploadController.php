@@ -19,8 +19,6 @@ class UploadController extends Controller
     {
         $request->validate([
             'content_title'  => 'required|string|max:100',
-            'start_datetime' => 'required|date',
-            'end_datetime'   => 'required|date|after:start_datetime',
             'category'       => 'required|string',
             'duration'       => 'required|string',
             'file'           => ['required', 'file', 'max:51200', function ($attribute, $value, $fail) {

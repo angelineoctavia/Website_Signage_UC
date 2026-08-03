@@ -16,8 +16,6 @@ return new class extends Migration
             $table->string('content_category', 20); // 'Event' / 'Daily'
             $table->string('content_type', 10);     // 'mp4', 'png', etc
             $table->integer('content_duration');     // Durasi dalam detik
-            $table->dateTime('content_start_date');
-            $table->dateTime('content_end_date');
             $table->boolean('content_status')->default(true); // true = Active, false = Inactive
             $table->string('status_del', 1)->default('0');
 
