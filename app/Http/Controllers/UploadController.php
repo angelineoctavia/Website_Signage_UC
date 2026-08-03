@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use App\Http\Controllers\GoogleDriveController;
 
 class UploadController extends Controller
@@ -41,7 +42,10 @@ class UploadController extends Controller
 
         $file = $request->file('file');
         $contentType = $file->getClientOriginalExtension();
-        $filename = time() . '_' . $file->getClientOriginalName();
+       
+        $tanggal = date('d-m-Y'); // Mengambil tanggal hari ini (format: 03-08-2026)
+        $cleanTitle = Str::slug($request->input('content_title'), '_'); // Mengubah spasi jadi underscore & bersihkan karakter khusus
+        $filename = "{$tanggal}_{$cleanTitle}.{$contentType}";
 
         // Upload ke Google Drive
         try {
@@ -66,8 +70,6 @@ class UploadController extends Controller
             'content_category'      => $request->input('category'),
             'content_type'          => $contentType,
             'content_duration'      => $contentDataDuration,
-            'content_start_date'    => $request->input('start_datetime'),
-            'content_end_date'      => $request->input('end_datetime'),
             'content_status'        => true,
             'status_del'            => '0',
         ]);

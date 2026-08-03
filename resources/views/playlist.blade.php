@@ -44,11 +44,22 @@
 
                     <!-- KOLOM KIRI -->
                     <div class="lg:col-span-7 space-y-6">
-                        <div>
-                            <label class="block text-xs font-bold text-uc-dark mb-2">Playlist Date</label>
-                            <input type="date" name="playlist_date" min="{{ date('Y-m-d') }}"
-                                class="w-full bg-white border border-gray-200 rounded-2xl px-5 py-3.5 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors"
-                                required>
+                        <!-- Ganti bagian Playlist Date dengan Start Date & End Date -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-uc-dark mb-1.5">Start Date</label>
+                                <div class="relative">
+                                    <input type="date" name="start_date" required
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-uc-dark mb-1.5">End Date</label>
+                                <div class="relative">
+                                    <input type="date" name="end_date" required
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="space-y-3">

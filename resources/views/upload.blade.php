@@ -5,20 +5,60 @@
 
         <!-- ALERT SUCCESS -->
         @if (session('success'))
-            <div
-                class="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-2xl text-xs flex items-center space-x-2 shadow-sm">
-                <i class="fa-solid fa-circle-check text-sm"></i>
-                <span class="font-medium">{{ session('success') }}</span>
+            <div id="success-alert"
+                class="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl shadow-sm mb-6 transition-opacity duration-500">
+                <div class="flex items-center space-x-3">
+                    <span
+                        class="flex-shrink-0 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                    <span class="text-xs font-medium">{{ session('success') }}</span>
+                </div>
+                <!-- Tombol Close (X) -->
+                <button onclick="document.getElementById('success-alert').remove()"
+                    class="text-emerald-600 hover:text-emerald-900 text-sm font-bold px-2 focus:outline-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
+
+            <!-- Script JavaScript untuk menghilangkan alert otomatis setelah 5 detik (5000 ms) -->
+            <script>
+                setTimeout(function() {
+                    let alertBox = document.getElementById('success-alert');
+                    if (alertBox) {
+                        alertBox.style.opacity = '0';
+                        setTimeout(() => alertBox.remove(), 500); // Efek fade out mulus sebelum dihapus dari DOM
+                    }
+                }, 5000);
+            </script>
         @endif
 
         <!-- ALERT ERROR (server-side, dari validasi/Drive) -->
+        <!-- ALERT ERROR (server-side, dari validasi/Drive) -->
         @if ($errors->any())
-            <div
-                class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs flex items-center space-x-2 shadow-sm">
-                <i class="fa-solid fa-circle-exclamation text-sm"></i>
-                <span class="font-medium">{{ $errors->first() }}</span>
+            <div id="error-alert"
+                class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs flex items-center justify-between shadow-sm transition-opacity duration-500">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-circle-exclamation text-sm flex-shrink-0"></i>
+                    <span class="font-medium">{{ $errors->first() }}</span>
+                </div>
+                <!-- Tombol Close (X) -->
+                <button type="button" onclick="document.getElementById('error-alert').remove()"
+                    class="text-red-500 hover:text-red-800 text-sm font-bold px-2 focus:outline-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
+
+            <!-- Script JavaScript untuk menghilangkan alert error otomatis setelah 5 detik -->
+            <script>
+                setTimeout(function() {
+                    let errorAlert = document.getElementById('error-alert');
+                    if (errorAlert) {
+                        errorAlert.style.opacity = '0';
+                        setTimeout(() => errorAlert.remove(), 500); // Efek fade out sebelum elemen dihapus
+                    }
+                }, 5000);
+            </script>
         @endif
 
         <!-- ALERT ERROR (client-side JS) -->
