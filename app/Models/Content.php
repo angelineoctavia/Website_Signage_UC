@@ -30,4 +30,25 @@ class Content extends Model
     {
         return $this->belongsTo(User::class, 'users_id', 'users_id');
     }
+
+    // Resolusi content_file_path_url jadi URL yang bisa dipakai <video>/<img>
+    public static function resolveFileUrl(string $filePath, ?string $extension = null)
+    {
+        if (empty($filePath)) {
+            return '';
+        }
+
+        // Data lama: udah full URL (http/https) — pakai apa adanya
+        if (str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')) {
+            return $filePath;
+        }
+
+        // Data lama: path lokal (ada slash, contoh: uploads/contents/xxx.mp4)
+        if (str_contains($filePath, '/')) {
+            return asset('storage/' . ltrim($filePath, '/'));
+        }
+
+        // Format baru: cuma file ID Drive (string alfanumerik tanpa slash)
+        return route('drive.stream', ['fileId' => $filePath, 'ext' => $extension ?? 'mp4']);
+    }
 }

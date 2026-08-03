@@ -125,9 +125,11 @@
 
                     <!-- TAB 1: PLAYLISTS AKTIF -->
                     <div id="tab-playlists-content">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
+                        <div
+                            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
                             <!-- Header Kartu -->
-                            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                            <div
+                                class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
                                     <i class="fa-solid fa-table"></i>
                                     <span>Playlists</span>
@@ -165,26 +167,41 @@
                                                                 {{ date('d/m/Y', strtotime($item->playlist_date)) }}
                                                             </td>
                                                         @endif
-                                                        <td class="p-3 text-center font-bold text-uc-orange">{{ $item->playlist_order }}</td>
-                                                        <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}</td>
+                                                        <td class="p-3 text-center font-bold text-uc-orange">
+                                                            {{ $item->playlist_order }}</td>
+                                                        <td class="p-3 font-medium text-uc-dark">{{ $item->content_title }}
+                                                        </td>
                                                         <td class="p-3 text-gray-500">{{ $item->content_duration }}s</td>
                                                         @if ($index === 0)
                                                             <td class="p-3 text-center align-middle bg-gray-50/50 space-y-2"
                                                                 rowspan="{{ count($items) }}">
                                                                 @php
-                                                                    $playlistVideos = $items->map(function ($i) {
-                                                                        $filePath = $i->content_file_path_url ?? '';
-                                                                        $fullUrl = str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')
-                                                                            ? $filePath
-                                                                            : asset('storage/' . ltrim($filePath, '/'));
-                                                                        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                                                                        $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-                                                                        return [
-                                                                            'url' => $fullUrl,
-                                                                            'title' => $i->content_title,
-                                                                            'duration' => $i->content_duration ?? ($isImage ? 5 : 10),
-                                                                        ];
-                                                                    })->values();
+                                                                    $playlistVideos = $items
+                                                                        ->map(function ($i) {
+                                                                            $extension = strtolower(
+                                                                                $i->content_type ?? '',
+                                                                            );
+                                                                            $isImage = in_array($extension, [
+                                                                                'jpg',
+                                                                                'jpeg',
+                                                                                'png',
+                                                                                'gif',
+                                                                                'webp',
+                                                                            ]);
+                                                                            $fullUrl = \App\Models\Content::resolveFileUrl(
+                                                                                $i->content_file_path_url ?? '',
+                                                                                $i->content_type ?? null,
+                                                                            );
+                                                                            return [
+                                                                                'url' => $fullUrl,
+                                                                                'title' => $i->content_title,
+                                                                                'duration' =>
+                                                                                    $i->content_duration ??
+                                                                                    ($isImage ? 5 : 10),
+                                                                                'isImage' => $isImage,
+                                                                            ];
+                                                                        })
+                                                                        ->values();
                                                                 @endphp
                                                                 <button type="button"
                                                                     onclick="startPlaylist({{ json_encode($playlistVideos) }}, '{{ $playlistId }}')"
@@ -210,7 +227,8 @@
                                                 @endforeach
                                             @empty
                                                 <tr>
-                                                    <td colspan="6" class="p-6 text-center text-gray-400 italic">Belum ada playlist aktif saat ini.</td>
+                                                    <td colspan="6" class="p-6 text-center text-gray-400 italic">Belum
+                                                        ada playlist aktif saat ini.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -222,8 +240,10 @@
 
                     <!-- TAB 2: DELETED PLAYLISTS -->
                     <div id="tab-deleted-content" class="hidden">
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
-                            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                        <div
+                            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
+                            <div
+                                class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
                                     <i class="fa-solid fa-trash"></i>
                                     <span>Deleted Playlists</span>
@@ -242,10 +262,14 @@
                                         </thead>
                                         <tbody class="divide-y divide-gray-200 text-gray-700">
                                             @forelse($trashedPlaylists ?? [] as $index => $trash)
-                                                <tr class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
-                                                    <td class="p-3 font-semibold text-uc-dark">#P{{ $trash->playlist_id }}</td>
-                                                    <td class="p-3">{{ date('d/m/Y', strtotime($trash->playlist_date)) }}</td>
-                                                    <td class="p-3 text-center font-bold">{{ $trash->details->count() }} Items</td>
+                                                <tr
+                                                    class="{{ $index % 2 === 0 ? 'bg-white' : 'bg-gray-50' }} hover:bg-orange-50/50 transition-colors">
+                                                    <td class="p-3 font-semibold text-uc-dark">#P{{ $trash->playlist_id }}
+                                                    </td>
+                                                    <td class="p-3">
+                                                        {{ date('d/m/Y', strtotime($trash->playlist_date)) }}</td>
+                                                    <td class="p-3 text-center font-bold">{{ $trash->details->count() }}
+                                                        Items</td>
                                                     <td class="p-3 text-center">
                                                         <form id="recover-form-{{ $trash->playlist_id }}"
                                                             action="{{ route('playlist.restore', $trash->playlist_id) }}"
@@ -263,7 +287,8 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="4" class="p-6 text-center text-gray-400 italic">Sampah kosong.</td>
+                                                    <td colspan="4" class="p-6 text-center text-gray-400 italic">Sampah
+                                                        kosong.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -543,8 +568,8 @@
                 placeholder.classList.add('hidden');
                 statusTitle.innerText = `Now Playing: Playlist #P${currentPlaylistId}`;
 
-                const extension = item.url.split('.').pop().split('?')[0].toLowerCase();
-                const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension);
+                // Pakai flag dari server, bukan nebak dari URL (URL sekarang tidak punya titik ekstensi)
+                const isImage = item.isImage === true;
 
                 if (isImage) {
                     videoPlayer.classList.add('hidden');

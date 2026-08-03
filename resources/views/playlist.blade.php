@@ -152,7 +152,7 @@
                                     <div>
                                         <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
                                         <p class="text-[10px] text-gray-400">Tipe:
-                                            {{ strtoupper(pathinfo($content->content_file_path_url, PATHINFO_EXTENSION)) }}
+                                            {{ strtoupper($content->content_type ?? '-') }}
                                             | Durasi: {{ $content->duration_seconds }}s</p>
                                     </div>
                                     <span class="bg-uc-orange text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
@@ -181,7 +181,7 @@
                                     <div>
                                         <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
                                         <p class="text-[10px] text-gray-400">Tipe:
-                                            {{ strtoupper(pathinfo($content->content_file_path_url, PATHINFO_EXTENSION)) }}
+                                            {{ strtoupper($content->content_type ?? '-') }}
                                             | Durasi: {{ $content->duration_seconds }}s</p>
                                     </div>
                                     <span class="bg-uc-green text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+

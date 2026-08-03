@@ -42,6 +42,7 @@ class DashboardController extends Controller
                         'content_title' => $detail->content->content_title ?? '-',
                         'content_duration' => $detail->content->content_duration ?? 0,
                         'content_file_path_url' => $detail->content->content_file_path_url ?? '',
+                        'content_type' => $detail->content->content_type ?? '',
                     ];
                 });
             });
@@ -85,7 +86,7 @@ class DashboardController extends Controller
             'playlistsData',
             'latestSignage',
             'currentSignage',
-            'allSignageHistories', 
+            'allSignageHistories',
             'allContents',
             'firstName',
             'totalContent',
@@ -96,11 +97,10 @@ class DashboardController extends Controller
 
     public function updateSignageStatus(Request $request, $id)
     {
-        // Simpan status signage baru ke database
         SignageStatus::create([
             'playlist_id' => $id,
-            'users_id' => Auth::user()->users_id,         // User yang sedang login
-            'status_updated_by' => Auth::user()->users_id, // ID admin yang memencet tombol
+            'users_id' => Auth::user()->users_id,
+            'status_updated_by' => Auth::user()->users_id,
             'status_updated_at' => Carbon::now('Asia/Jakarta'),
         ]);
 

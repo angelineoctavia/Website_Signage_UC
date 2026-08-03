@@ -64,7 +64,7 @@ class UploadController extends Controller
         DB::table('contents')->insert([
             'users_id'              => Auth::id() ?? 1,
             'content_title'         => $request->input('content_title'),
-            'content_file_path_url' => $uploadedFile['link'],
+            'content_file_path_url' => $uploadedFile['file_id'],
             'content_category'      => $request->input('category'),
             'content_type'          => $contentType,
             'content_duration'      => $contentDataDuration,

@@ -18,12 +18,13 @@ class SignageStatus extends Model
     // Kolom yang boleh diisi (mass assignable)
     protected $fillable = [
         'playlist_id',
+        'users_id',
         'status_updated_by',
         'status_updated_at',
     ];
 
     // Jika tabel kamu menggunakan timestamps bawaan (created_at & updated_at)
-    public $timestamps = true;
+    public $timestamps = false;
 
     // Relasi ke tabel Playlist
     public function playlist()

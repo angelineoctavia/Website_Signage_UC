@@ -87,5 +87,10 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/api/signage/playlist', [SignageController::class, 'getPlaylistData']);
 });
 
+// ROUTE STREAMING FILE GOOGLE DRIVE (dipakai Admin & TV, jadi cukup auth)
+Route::middleware('auth')->group(function () {
+    Route::get('/drive/stream/{fileId}/{ext}', [GoogleDriveController::class, 'streamFile'])->name('drive.stream');
+});
+
 Route::get('/google/login', [GoogleDriveController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('/google/callback', [GoogleDriveController::class, 'handleGoogleCallback']);

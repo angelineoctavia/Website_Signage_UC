@@ -14,7 +14,6 @@ return new class extends Migration
             $table->string('users_id', 5); // Mengikuti tipe data users_id di tabel users
             $table->string('status_updated_by', 5); // ID user yang terakhir kali update
             $table->dateTime('status_updated_at');
-            $table->string('status_del', 1)->default('0');
             
             // Foreign keys
             $table->foreign('playlist_id')->references('playlist_id')->on('playlists')->onDelete('cascade');

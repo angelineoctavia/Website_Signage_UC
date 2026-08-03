@@ -15,17 +15,15 @@ class PlaylistController extends Controller
 
         foreach ($contents as $content) {
             $path = $content->content_file_path_url ?? '';
-            if (!filter_var($path, FILTER_VALIDATE_URL)) {
-                $content->full_url = asset('storage/' . ltrim($path, '/'));
-            } else {
-                $content->full_url = $path;
-            }
 
-            // Deteksi jenis file (gambar vs video)
-            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            // Pakai resolver terpusat — otomatis handle: file ID Drive baru, URL Drive lama, atau path lokal lama
+            $content->full_url = \App\Models\Content::resolveFileUrl($path, $content->content_type ?? null);
+
+            // Deteksi jenis file (gambar vs video) berdasarkan content_type, bukan ekstensi dari path
+            // (karena sekarang path cuma file ID, tidak ada ekstensi di dalamnya)
+            $extension = strtolower($content->content_type ?? '');
             $content->is_image = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
 
-            // Default durasi 5 detik untuk gambar jika kosong, atau pakai durasi database
             $content->duration_seconds = $content->content_duration ?? ($content->is_image ? 5 : 10);
         }
 
@@ -74,7 +72,7 @@ class PlaylistController extends Controller
         Playlist::query()->where('playlist_id', $id)->update(['status_del' => '1']);
         return redirect()->route('dashboard')->with('success', 'Playlist berhasil dipindahkan ke sampah.');
     }
-    
+
     // 3. Restore Playlist
     public function restore($id)
     {

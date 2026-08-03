@@ -25,7 +25,6 @@ class SignageController extends Controller
                 return response()->json(['items' => []], 200);
             }
 
-            // Lakukan JOIN dari playlist_details ke contents untuk mengambil file path & durasi
             $playlistDetails = DB::table('playlist_details')
                 ->join('contents', 'playlist_details.contents_id', '=', 'contents.contents_id')
                 ->where('playlist_details.playlist_id', $latestStatus->playlist_id)
@@ -37,19 +36,15 @@ class SignageController extends Controller
             foreach ($playlistDetails as $detail) {
                 $filePath = $detail->content_file_path_url ?? '';
 
-                // Skip jika path kosong
                 if (empty($filePath) || $filePath === 'storage' || $filePath === '/storage') {
                     continue;
                 }
 
-                $fileUrl = str_starts_with($filePath, 'http://') || str_starts_with($filePath, 'https://')
-                    ? $filePath
-                    : asset('storage/' . ltrim($filePath, '/'));
+                // Pakai resolver terpusat — otomatis handle: file ID Drive baru, URL Drive lama, atau path lokal lama
+                $fileUrl = \App\Models\Content::resolveFileUrl($filePath, $detail->content_type ?? null);
 
-                // Tentukan tipe berdasarkan kolom content_type atau ekstensi file
                 $contentType = strtolower($detail->content_type ?? '');
-                $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
-                $isImage = in_array($contentType, ['image', 'img', 'jpg', 'jpeg', 'png']) || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                $isImage = in_array($contentType, ['image', 'img', 'jpg', 'jpeg', 'png']);
 
                 $items[] = [
                     'id' => $detail->contents_id,
