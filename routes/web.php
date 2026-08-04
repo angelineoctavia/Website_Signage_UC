@@ -74,6 +74,10 @@ Route::middleware(['auth', 'role:1'])->group(function () {
     Route::patch('/playlist/{id}/delete', [PlaylistController::class, 'destroy'])->name('playlist.destroy');
     Route::patch('/playlist/{id}/restore', [PlaylistController::class, 'restore'])->name('playlist.restore');
 
+    // Edit Playlist (prefill form create dengan data lama)
+    Route::get('/playlist/{id}/edit', [PlaylistController::class, 'edit'])->name('playlist.edit');
+    Route::put('/playlist/{id}', [PlaylistController::class, 'update'])->name('playlist.update');
+
     // Route untuk memproses tombol konfirmasi show ke TV
     Route::post('/dashboard/show/{id}', [DashboardController::class, 'updateSignageStatus'])->name('dashboard.show');
 

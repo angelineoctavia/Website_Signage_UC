@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Playlist;
 use App\Models\SignageStatus;
+use App\Models\Content;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -11,87 +12,183 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $fullName = $user->users_name ?? 'Admin';
         $firstName = explode(' ', trim($fullName))[0];
 
+        $month = (int) $request->query('month', now()->month);
+        $year = (int) $request->query('year', now()->year);
+        $categoryFilter = $request->query('category', 'all');
+
         $playlists = Playlist::with(['details.content.user'])
             ->where('status_del', '0')
             ->get();
 
-        $trashedPlaylists = Playlist::with(['details.content'])
-            ->where('status_del', '1')
-            ->get();
+        foreach ($playlists as $playlist) {
+            $categories = $playlist->details->pluck('content.content_category')->filter()->unique()->values();
+            $playlist->categories = $categories;
+        }
 
-        $totalContent = \App\Models\Content::query()->where('status_del', '0')->count();
+        $filteredPlaylists = $categoryFilter === 'all'
+            ? $playlists
+            : $playlists->filter(fn($p) => $p->categories->contains($categoryFilter))->values();
+
+        $trashedPlaylists = Playlist::with(['details.content'])->where('status_del', '1')->get();
+
+        $totalContent = Content::query()->where('status_del', '0')->count();
         $activePlaylists = $playlists->count();
-        $averagePlaytime = \App\Models\Content::query()->where('status_del', '0')->average('content_duration') ?? 0;
-        $averagePlaytime = round($averagePlaytime, 1);
+        $averagePlaytime = round(Content::query()->where('status_del', '0')->average('content_duration') ?? 0, 1);
 
-        $playlistsData = Playlist::with(['details.content'])
-            ->where('status_del', '0')
-            ->get()
-            ->flatMap(function ($playlist) {
-                return $playlist->details->map(function ($detail) use ($playlist) {
-                    return (object)[
-                        'playlist_id' => $playlist->playlist_id,
-                        'playlist_date' => $playlist->playlist_date,
-                        'playlist_order' => $detail->playlist_order,
-                        'content_title' => $detail->content->content_title ?? '-',
-                        'content_duration' => $detail->content->content_duration ?? 0,
-                        'content_file_path_url' => $detail->content->content_file_path_url ?? '',
-                        'content_type' => $detail->content->content_type ?? '',
-                    ];
-                });
-            });
-
-        $latestSignage = SignageStatus::with(['playlist', 'updatedBy'])
-            ->orderBy('status_updated_at', 'desc')
-            ->first();
-
-        // 1. Ambil info Playlist yang SEDANG TAYANG (Aktif) terakhir lengkap dengan nama usernya
         $currentSignage = DB::table('signage_status')
             ->join('playlists', 'signage_status.playlist_id', '=', 'playlists.playlist_id')
             ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
             ->orderBy('signage_status.status_updated_at', 'desc')
-            ->select(
-                'signage_status.*',
-                'playlists.playlist_date',
-                'users.users_name as updated_by_name'
-            )
+            ->select('signage_status.*', 'playlists.playlist_start_date', 'users.users_name as updated_by_name')
             ->first();
 
         $allSignageHistories = DB::table('signage_status')
             ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
-            ->orderBy('signage_status.status_updated_at', 'desc') // Urutkan dari yang terbaru
-            ->select(
-                'signage_status.*',
-                'users.users_name as status_updated_by' // Kita override agar langsung berisi nama user, atau biarkan ID-nya
-            )
+            ->orderBy('signage_status.status_updated_at', 'desc')
+            ->select('signage_status.*', 'users.users_name as status_updated_by')
             ->get();
 
-        // 2. Ambil daftar semua konten yang di-upload lengkap dengan nama pengunggahnya
         $allContents = DB::table('contents')
             ->join('users', 'contents.users_id', '=', 'users.users_id')
             ->where('contents.status_del', '0')
             ->select('contents.*', 'users.users_name')
             ->get();
 
-        // PASTIKAN SEMUA VARIABEL INI DI-COMPACT
+        $availableCategories = Content::query()
+            ->where('status_del', '0')
+            ->distinct()
+            ->pluck('content_category')
+            ->filter()
+            ->values();
+
+        // ================= BANGUN DATA KALENDER (bar horizontal per minggu) =================
+        $currentMonthCarbon = Carbon::create($year, $month, 1);
+        $startOfMonth = $currentMonthCarbon->copy()->startOfMonth();
+        $endOfMonth = $currentMonthCarbon->copy()->endOfMonth();
+        $startingDayOfWeek = $startOfMonth->dayOfWeek == 0 ? 6 : $startOfMonth->dayOfWeek - 1;
+        $todayStr = now()->format('Y-m-d');
+
+        $calendarCells = array_fill(0, $startingDayOfWeek, null);
+        for ($d = 1; $d <= $endOfMonth->day; $d++) {
+            $calendarCells[] = $currentMonthCarbon->copy()->setDay($d)->format('Y-m-d');
+        }
+        while (count($calendarCells) % 7 !== 0) {
+            $calendarCells[] = null;
+        }
+        $weeksRaw = array_chunk($calendarCells, 7);
+
+        $categoryColors = [
+            'event' => ['bg' => 'bg-orange-100', 'border' => 'border-orange-300', 'text' => 'text-uc-orange'],
+            'daily' => ['bg' => 'bg-emerald-100', 'border' => 'border-emerald-300', 'text' => 'text-emerald-700'],
+        ];
+
+        $calendarWeeks = [];
+        foreach ($weeksRaw as $week) {
+            $weekDates = array_filter($week);
+            $weekStart = !empty($weekDates) ? min($weekDates) : null;
+            $weekEnd = !empty($weekDates) ? max($weekDates) : null;
+
+            $bars = [];
+            if ($weekStart && $weekEnd) {
+                $weekPlaylists = $filteredPlaylists->filter(function ($p) use ($weekStart, $weekEnd) {
+                    $pStart = substr($p->playlist_start_date, 0, 10);
+                    $pEnd = substr($p->playlist_end_date, 0, 10);
+                    return $pStart <= $weekEnd && $pEnd >= $weekStart;
+                })->sortBy('playlist_start_date')->values();
+
+                $rowOccupancy = [];
+
+                foreach ($weekPlaylists as $p) {
+                    $pStart = substr($p->playlist_start_date, 0, 10);
+                    $pEnd = substr($p->playlist_end_date, 0, 10);
+                    $clampedStart = max($pStart, $weekStart);
+                    $clampedEnd = min($pEnd, $weekEnd);
+
+                    $startCol = array_search($clampedStart, $week) + 1;
+                    $endCol = array_search($clampedEnd, $week) + 2;
+
+                    $assignedRow = null;
+                    foreach ($rowOccupancy as $rowIdx => $occupiedUntil) {
+                        if ($startCol >= $occupiedUntil) {
+                            $assignedRow = $rowIdx;
+                            break;
+                        }
+                    }
+                    if ($assignedRow === null) {
+                        $assignedRow = count($rowOccupancy);
+                    }
+                    $rowOccupancy[$assignedRow] = $endCol;
+
+                    $mainCategory = strtolower($p->categories->first() ?? 'daily');
+                    $colors = $categoryColors[$mainCategory] ?? ['bg' => 'bg-gray-100', 'border' => 'border-gray-300', 'text' => 'text-gray-600'];
+
+                    $items = $p->details->sortBy('playlist_order')->map(function ($d) {
+                        return [
+                            'order' => $d->playlist_order,
+                            'title' => $d->content->content_title ?? '-',
+                            'duration' => $d->content->content_duration ?? 0,
+                        ];
+                    })->values();
+
+                    $videos = $p->details->sortBy('playlist_order')->map(function ($d) {
+                        $content = $d->content;
+                        $extension = strtolower($content->content_type ?? '');
+                        $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+                        $fullUrl = Content::resolveFileUrl($content->content_file_path_url ?? '', $content->content_type ?? null);
+
+                        return [
+                            'url' => $fullUrl,
+                            'title' => $content->content_title ?? '-',
+                            'duration' => $content->content_duration ?? ($isImage ? 5 : 10),
+                            'isImage' => $isImage,
+                        ];
+                    })->values();
+
+                    $bars[] = [
+                        'id' => $p->playlist_id,
+                        'start_col' => $startCol,
+                        'end_col' => $endCol,
+                        'row' => $assignedRow + 1,
+                        'bg' => $colors['bg'],
+                        'border' => $colors['border'],
+                        'text' => $colors['text'],
+                        'start_date' => $p->playlist_start_date,
+                        'end_date' => $p->playlist_end_date,
+                        'items' => $items,
+                        'videos' => $videos,
+                    ];
+                }
+            }
+
+            $calendarWeeks[] = [
+                'days' => $week,
+                'bars' => $bars,
+                'row_count' => !empty($bars) ? max(array_column($bars, 'row')) : 0,
+            ];
+        }
+
         return view('dashboard', compact(
-            'playlists',
-            'trashedPlaylists',
-            'playlistsData',
-            'latestSignage',
-            'currentSignage',
-            'allSignageHistories',
-            'allContents',
             'firstName',
             'totalContent',
             'activePlaylists',
-            'averagePlaytime'
+            'averagePlaytime',
+            'currentSignage',
+            'allSignageHistories',
+            'allContents',
+            'trashedPlaylists',
+            'month',
+            'year',
+            'categoryFilter',
+            'availableCategories',
+            'currentMonthCarbon',
+            'todayStr',
+            'calendarWeeks'
         ));
     }
 

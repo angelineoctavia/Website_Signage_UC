@@ -36,8 +36,19 @@
             </button>
         </div>
 
-        <form action="{{ route('playlist.store') }}" method="POST">
+        @if ($errors->any())
+            <div
+                class="mb-6 bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-xl text-xs flex items-center space-x-3 shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation text-red-500 text-base"></i>
+                <div>{{ $errors->first() }}</div>
+            </div>
+        @endif
+
+        <form action="{{ $editMode ? route('playlist.update', $playlist->playlist_id) : route('playlist.store') }}" method="POST">
             @csrf
+            @if ($editMode)
+                @method('PUT')
+            @endif
 
             <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 lg:p-10">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -48,17 +59,16 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold text-uc-dark mb-1.5">Start Date</label>
-                                <div class="relative">
-                                    <input type="date" name="start_date" required
-                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
-                                </div>
+                                <input type="date" name="playlist_start_date" id="playlist_start_date" required
+                                    value="{{ old('playlist_start_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_start_date)->format('Y-m-d') : '') }}"
+                                    onchange="document.getElementById('playlist_end_date').min = this.value;"
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-uc-dark mb-1.5">End Date</label>
-                                <div class="relative">
-                                    <input type="date" name="end_date" required
-                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
-                                </div>
+                                <input type="date" name="playlist_end_date" id="playlist_end_date" required
+                                    value="{{ old('playlist_end_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_end_date)->format('Y-m-d') : '') }}"
+                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
                             </div>
                         </div>
 
@@ -67,7 +77,26 @@
                                     id="content-count">0</span></label>
 
                             <div id="content-list" class="space-y-3 min-h-[50px]">
-                                <!-- Item dinamis -->
+                                @if ($editMode)
+                                    @foreach ($existingItems as $item)
+                                        <div class="content-item flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-xs hover:border-gray-300 transition-all"
+                                            data-url="{{ $item['url'] }}"
+                                            data-title="{{ $item['title'] }}"
+                                            data-is-image="{{ $item['isImage'] ? '1' : '0' }}"
+                                            data-duration="{{ $item['duration'] }}">
+                                            <div class="flex items-center space-x-3">
+                                                <i class="fa-solid fa-grip-vertical text-gray-400 text-xs drag-handle"></i>
+                                                <span class="text-xs font-medium text-uc-dark content-name">{{ $item['title'] }} ({{ $item['duration'] }}s)</span>
+                                            </div>
+                                            <div class="flex items-center space-x-3">
+                                                <input type="hidden" name="contents[]" value="{{ $item['id'] }}">
+                                                <button type="button" onclick="removeContentItem(this, event)" class="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none">
+                                                    <i class="fa-solid fa-xmark text-xs"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
                             </div>
 
                             <button type="button" onclick="openContentModal()"
@@ -130,7 +159,7 @@
                 </a>
                 <button type="submit"
                     class="bg-uc-green hover:bg-emerald-600 text-white font-semibold px-10 py-3.5 rounded-xl text-xs transition-all shadow-sm">
-                    Save
+                    {{ $editMode ? 'Update' : 'Save' }}
                 </button>
             </div>
         </form>
@@ -252,6 +281,11 @@
                 }
             });
             updateContentCount();
+            rebuildPlaylistQueue();
+            if (playlistQueue.length > 0) {
+                currentPlaylistIndex = 0;
+                playCurrentQueueItem();
+            }
         });
 
         function openContentModal() {

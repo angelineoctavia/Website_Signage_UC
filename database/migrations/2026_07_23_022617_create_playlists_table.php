@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('playlists', function (Blueprint $table) {
             $table->id('playlist_id');
             $table->dateTime('playlist_start_date');
-            $table->dateTime('playlists_end_date');
+            $table->dateTime('playlist_end_date');
             $table->integer('playlist_duration')->default(0);
             $table->string('status_del', 1)->default('0');
         });

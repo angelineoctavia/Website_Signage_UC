@@ -102,6 +102,14 @@
         // PENTING: nama ini HARUS SAMA PERSIS dengan CACHE_NAME di sw.js
         const CACHE_NAME = 'signage-offline-cache-v2';
 
+        // Interval polling untuk cek playlist baru dari dashboard (dalam ms)
+        const POLL_INTERVAL = 20000; // 20 detik
+
+        // State pemutaran, disimpan di scope luar biar bisa di-restart pas ada playlist baru
+        let currentVersion = null;
+        let activeTimer = null;
+        let currentVideoEl = null;
+
         function handleCursorMovement() {
             header.classList.add('visible');
             clearTimeout(hideTimer);
@@ -127,31 +135,37 @@
             }
         }
 
-        // Fungsi Utama Inisialisasi Signage dengan True Offline Caching & Fallback Aman
-        async function initSignagePlayer() {
+        // Cek playlist terbaru dari server. Kalau ada versi baru (beda dari yang lagi diputar),
+        // download asetnya lalu langsung ganti pemutaran - TANPA reload halaman.
+        // isInitial = true hanya dipakai saat load pertama kali (untuk fallback ke cache lokal saat offline).
+        async function checkAndSyncPlaylist(isInitial = false) {
             const statusText = document.getElementById('status-text');
 
             try {
-                // 1. Coba ambil data playlist terbaru dari server admin
-                const response = await fetch('/api/signage/playlist');
+                // cache: 'no-store' -> pastikan selalu tanya versi TERBARU ke server, bukan versi lama
+                const response = await fetch('/api/signage/playlist', { cache: 'no-store' });
                 if (!response.ok) throw new Error('Gagal terhubung ke server');
 
                 const playlist = await response.json();
-                console.log("Playlist dari server:", playlist);
 
-                // Jika playlist items kosong
                 if (!playlist.items || playlist.items.length === 0) {
-                    statusText.textContent = "Playlist kosong.";
+                    if (isInitial) statusText.textContent = "Playlist kosong.";
                     return;
                 }
 
-                // 2. Simpan metadata playlist ke localStorage untuk cadangan offline
+                // Kalau versinya sama kayak yang lagi diputar sekarang, tidak usah diapa-apain
+                // (biar video yang lagi jalan tidak keinterupsi terus-terusan tiap polling)
+                if (playlist.version === currentVersion) return;
+
+                console.log(`Playlist baru terdeteksi (versi ${currentVersion} -> ${playlist.version}), sinkronisasi...`);
+
+                // Simpan metadata playlist ke localStorage untuk cadangan offline
                 localStorage.setItem('cached_playlist', JSON.stringify(playlist));
 
-                // 3. Download dan simpan fisik file media ke Cache Storage browser TV secara aman
+                // Download & simpan fisik file media ke Cache Storage browser TV
                 if ('caches' in window) {
                     const cache = await caches.open(CACHE_NAME);
-                    statusText.textContent = "Mengunduh aset media ke memori TV...";
+                    if (isInitial) statusText.textContent = "Mengunduh aset media ke memori TV...";
 
                     for (const item of playlist.items) {
                         try {
@@ -165,32 +179,47 @@
                             console.warn(`Skipping asset due to network/CORS error: ${item.url}`);
                         }
                     }
-                    console.log("Proses caching aset selesai.");
                 }
 
-                // Jalankan pemutaran playlist
+                currentVersion = playlist.version;
                 startLoop(playlist.items);
 
             } catch (error) {
-                console.warn("Mode Offline Aktif / Gagal Fetch:", error);
-                statusText.textContent = "Koneksi terputus. Memuat dari Cache Offline...";
+                console.warn("Gagal ambil playlist terbaru / offline:", error);
 
-                // FALLBACK: Ambil data dari localStorage saat offline atau gagal fetch (termasuk saat di-refresh)
-                const cachedData = localStorage.getItem('cached_playlist');
-                if (cachedData) {
-                    const playlist = JSON.parse(cachedData);
-                    if (playlist.items && playlist.items.length > 0) {
-                        startLoop(playlist.items);
-                        return;
+                // Fallback ke cache lokal HANYA saat load pertama kali (belum ada apa-apa yang diputar).
+                // Kalau ini cuma polling biasa dan lagi offline sesaat, biarkan playlist yang sedang
+                // berjalan tetap lanjut, jangan diinterupsi.
+                if (isInitial) {
+                    statusText.textContent = "Koneksi terputus. Memuat dari Cache Offline...";
+                    const cachedData = localStorage.getItem('cached_playlist');
+                    if (cachedData) {
+                        const playlist = JSON.parse(cachedData);
+                        if (playlist.items && playlist.items.length > 0) {
+                            currentVersion = playlist.version;
+                            startLoop(playlist.items);
+                            return;
+                        }
                     }
+                    statusText.textContent = "Tidak ada koneksi internet & cache lokal kosong.";
                 }
-
-                statusText.textContent = "Tidak ada koneksi internet & cache lokal kosong.";
             }
         }
 
         // Fungsi Looping Pemutaran Media
         function startLoop(items) {
+            // Hentikan pemutaran/timer sebelumnya (kalau ini pergantian playlist saat sedang jalan)
+            if (activeTimer) {
+                clearTimeout(activeTimer);
+                activeTimer = null;
+            }
+            if (currentVideoEl) {
+                currentVideoEl.onended = null;
+                currentVideoEl.onerror = null;
+                currentVideoEl.pause();
+                currentVideoEl = null;
+            }
+
             if (!items || items.length === 0) {
                 document.getElementById('signage-container').innerHTML =
                     `<p class="text-gray-400 text-xs">Playlist kosong.</p>`;
@@ -205,12 +234,13 @@
                 container.innerHTML = '';
 
                 if (item.type === 'image') {
+                    currentVideoEl = null;
                     const img = document.createElement('img');
                     img.src = item.url; // Browser otomatis mengambil dari cache jika offline
                     img.className = 'w-full h-full object-cover';
                     container.appendChild(img);
 
-                    setTimeout(() => {
+                    activeTimer = setTimeout(() => {
                         currentIndex = (currentIndex + 1) % items.length;
                         playNext();
                     }, (item.duration || 10) * 1000);
@@ -223,6 +253,7 @@
                     video.muted = false; // Tizen SSSP (signage) umumnya tidak strict soal autoplay+audio seperti Chrome desktop
                     video.playsInline = true;
                     container.appendChild(video);
+                    currentVideoEl = video;
 
                     video.onended = () => {
                         currentIndex = (currentIndex + 1) % items.length;
@@ -255,7 +286,13 @@
 
         window.onload = async () => {
             await registerServiceWorker();
-            initSignagePlayer();
+
+            // Load pertama kali - kalau offline, otomatis fallback ke cache lokal
+            await checkAndSyncPlaylist(true);
+
+            // Polling berkala - cek apakah ada playlist baru dari dashboard,
+            // tanpa perlu refresh manual/reload halaman
+            setInterval(() => checkAndSyncPlaylist(false), POLL_INTERVAL);
         };
     </script>
 </body>

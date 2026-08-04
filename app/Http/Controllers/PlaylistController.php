@@ -6,55 +6,62 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Playlist;
 use App\Models\PlaylistDetail;
+use App\Models\Content;
 
 class PlaylistController extends Controller
 {
     public function index()
     {
-        $contents = DB::table('contents')->where('status_del', '0')->get();
+        $contents = $this->getContentsWithMeta();
 
-        foreach ($contents as $content) {
-            $path = $content->content_file_path_url ?? '';
+        return view('playlist', [
+            'contents' => $contents,
+            'editMode' => false,
+        ]);
+    }
 
-            // Pakai resolver terpusat — otomatis handle: file ID Drive baru, URL Drive lama, atau path lokal lama
-            $content->full_url = \App\Models\Content::resolveFileUrl($path, $content->content_type ?? null);
+    public function edit($id)
+    {
+        $playlist = Playlist::with(['details.content'])->findOrFail($id);
+        $contents = $this->getContentsWithMeta();
 
-            // Deteksi jenis file (gambar vs video) berdasarkan content_type, bukan ekstensi dari path
-            // (karena sekarang path cuma file ID, tidak ada ekstensi di dalamnya)
+        $existingItems = $playlist->details->sortBy('playlist_order')->map(function ($d) {
+            $content = $d->content;
             $extension = strtolower($content->content_type ?? '');
-            $content->is_image = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            $fullUrl = Content::resolveFileUrl($content->content_file_path_url ?? '', $content->content_type ?? null);
 
-            $content->duration_seconds = $content->content_duration ?? ($content->is_image ? 5 : 10);
-        }
+            return [
+                'id' => $content->contents_id,
+                'title' => $content->content_title,
+                'url' => $fullUrl,
+                'isImage' => $isImage,
+                'duration' => $content->content_duration ?? ($isImage ? 5 : 10),
+            ];
+        })->values();
 
-        return view('playlist', compact('contents'));
+        return view('playlist', [
+            'contents' => $contents,
+            'editMode' => true,
+            'playlist' => $playlist,
+            'existingItems' => $existingItems,
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'playlist_date' => ['required', 'date', 'after_or_equal:today'],
-            'contents' => ['required', 'array', 'min:1'],
-            'contents.*' => ['exists:contents,contents_id']
-        ]);
+        $this->validatePlaylistRequest($request);
+        $this->checkOverlap($request, null);
 
-        // 1. Ambil data konten yang dipilih untuk menghitung total durasi
-        $selectedContents = DB::table('contents')->whereIn('contents_id', $request->contents)->get();
+        $totalDuration = $this->calculateTotalDuration($request->contents);
 
-        $totalDuration = $selectedContents->sum(function ($content) {
-            $extension = strtolower(pathinfo($content->content_file_path_url, PATHINFO_EXTENSION));
-            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
-            return $content->content_duration ?? ($isImage ? 5 : 10);
-        });
-
-        // 2. Simpan Header Playlist ke tabel 'playlists'
         $playlist = Playlist::create([
-            'playlist_date' => $request->playlist_date,
+            'playlist_start_date' => $request->playlist_start_date,
+            'playlist_end_date'   => $request->playlist_end_date,
             'playlist_duration' => $totalDuration,
             'status_del' => '0'
         ]);
 
-        // 3. Simpan Detail Playlist ke tabel 'playlist_details' beserta urutannya
         foreach ($request->contents as $index => $contentId) {
             PlaylistDetail::create([
                 'playlist_id' => $playlist->playlist_id,
@@ -66,17 +73,98 @@ class PlaylistController extends Controller
         return redirect()->route('playlist.index')->with('success', 'Playlist berhasil disimpan ke database!');
     }
 
-    // 1. Soft Delete Playlist
+    public function update(Request $request, $id)
+    {
+        $this->validatePlaylistRequest($request);
+        $this->checkOverlap($request, $id);
+
+        $totalDuration = $this->calculateTotalDuration($request->contents);
+
+        Playlist::where('playlist_id', $id)->update([
+            'playlist_start_date' => $request->playlist_start_date,
+            'playlist_end_date'   => $request->playlist_end_date,
+            'playlist_duration' => $totalDuration,
+        ]);
+
+        PlaylistDetail::where('playlist_id', $id)->delete();
+        foreach ($request->contents as $index => $contentId) {
+            PlaylistDetail::create([
+                'playlist_id' => $id,
+                'contents_id' => $contentId,
+                'playlist_order' => $index + 1
+            ]);
+        }
+
+        return redirect()->route('dashboard')->with('success', 'Playlist berhasil diperbarui!');
+    }
+
     public function destroy($id)
     {
         Playlist::query()->where('playlist_id', $id)->update(['status_del' => '1']);
         return redirect()->route('dashboard')->with('success', 'Playlist berhasil dipindahkan ke sampah.');
     }
 
-    // 3. Restore Playlist
     public function restore($id)
     {
         Playlist::query()->where('playlist_id', $id)->update(['status_del' => '0']);
         return redirect()->route('dashboard')->with('success', 'Playlist berhasil dipulihkan!');
+    }
+
+    private function getContentsWithMeta()
+    {
+        $contents = DB::table('contents')->where('status_del', '0')->get();
+
+        foreach ($contents as $content) {
+            $path = $content->content_file_path_url ?? '';
+            $content->full_url = Content::resolveFileUrl($path, $content->content_type ?? null);
+
+            $extension = strtolower($content->content_type ?? '');
+            $content->is_image = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            $content->duration_seconds = $content->content_duration ?? ($content->is_image ? 5 : 10);
+        }
+
+        return $contents;
+    }
+
+    private function validatePlaylistRequest(Request $request)
+    {
+        $request->validate([
+            'playlist_start_date' => ['required', 'date'],
+            'playlist_end_date'   => ['required', 'date', 'after_or_equal:playlist_start_date'],
+            'contents' => ['required', 'array', 'min:1'],
+            'contents.*' => ['exists:contents,contents_id']
+        ], [
+            'playlist_end_date.after_or_equal' => 'End Date tidak boleh lebih awal dari Start Date.',
+        ]);
+    }
+
+    private function checkOverlap(Request $request, $excludeId = null)
+    {
+        $query = Playlist::where('status_del', '0')
+            ->where(function ($q) use ($request) {
+                $q->where('playlist_start_date', '<=', $request->playlist_end_date)
+                  ->where('playlist_end_date', '>=', $request->playlist_start_date);
+            });
+
+        if ($excludeId) {
+            $query->where('playlist_id', '!=', $excludeId);
+        }
+
+        if ($query->exists()) {
+            abort(redirect()->back()
+                ->withErrors(['playlist_start_date' => 'Rentang tanggal ini sudah dipakai playlist lain. Silakan pilih tanggal yang berbeda.'])
+                ->withInput());
+        }
+    }
+
+    private function calculateTotalDuration(array $contentIds)
+    {
+        $selectedContents = DB::table('contents')->whereIn('contents_id', $contentIds)->get();
+
+        return $selectedContents->sum(function ($content) {
+            $extension = strtolower(pathinfo($content->content_file_path_url, PATHINFO_EXTENSION));
+            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+            return $content->content_duration ?? ($isImage ? 5 : 10);
+        });
     }
 }

@@ -17,7 +17,8 @@ class Playlist extends Model
     public $timestamps = false; 
 
     protected $fillable = [
-        'playlist_date',
+        'playlist_start_date',
+        'playlist_end_date',
         'playlist_duration_formatted',
         'status_del'
     ];
