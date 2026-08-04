@@ -34,7 +34,6 @@
         @endif
 
         <!-- ALERT ERROR (server-side, dari validasi/Drive) -->
-        <!-- ALERT ERROR (server-side, dari validasi/Drive) -->
         @if ($errors->any())
             <div id="error-alert"
                 class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-2xl text-xs flex items-center justify-between shadow-sm transition-opacity duration-500">
@@ -135,7 +134,10 @@
                                 required>
                                 <option value="" disabled selected>Pilih Kategori...</option>
                                 <option value="Event">Event</option>
-                                <option value="Daily">Daily</option>
+                                <option value="Regular Content">Regular Content</option>
+                                <option value="Promotion">Promotion</option>
+                                <option value="Achievement">Achievement</option>
+                                <option value="Business & Community">Business & Community</option>
                             </select>
                         </div>
 

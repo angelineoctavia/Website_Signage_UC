@@ -44,7 +44,8 @@
             </div>
         @endif
 
-        <form action="{{ $editMode ? route('playlist.update', $playlist->playlist_id) : route('playlist.store') }}" method="POST">
+        <form action="{{ $editMode ? route('playlist.update', $playlist->playlist_id) : route('playlist.store') }}"
+            method="POST">
             @csrf
             @if ($editMode)
                 @method('PUT')
@@ -80,17 +81,20 @@
                                 @if ($editMode)
                                     @foreach ($existingItems as $item)
                                         <div class="content-item flex items-center justify-between bg-white border border-gray-200 rounded-2xl px-5 py-3.5 shadow-xs hover:border-gray-300 transition-all"
-                                            data-url="{{ $item['url'] }}"
-                                            data-title="{{ $item['title'] }}"
+                                            data-url="{{ $item['url'] }}" data-title="{{ $item['title'] }}"
                                             data-is-image="{{ $item['isImage'] ? '1' : '0' }}"
                                             data-duration="{{ $item['duration'] }}">
                                             <div class="flex items-center space-x-3">
                                                 <i class="fa-solid fa-grip-vertical text-gray-400 text-xs drag-handle"></i>
-                                                <span class="text-xs font-medium text-uc-dark content-name">{{ $item['title'] }} ({{ $item['duration'] }}s)</span>
+                                                <span
+                                                    class="text-xs font-medium text-uc-dark content-name">{{ $item['title'] }}
+                                                    ({{ $item['duration'] }}s)
+                                                </span>
                                             </div>
                                             <div class="flex items-center space-x-3">
                                                 <input type="hidden" name="contents[]" value="{{ $item['id'] }}">
-                                                <button type="button" onclick="removeContentItem(this, event)" class="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none">
+                                                <button type="button" onclick="removeContentItem(this, event)"
+                                                    class="text-gray-400 hover:text-red-500 transition-colors p-1 focus:outline-none">
                                                     <i class="fa-solid fa-xmark text-xs"></i>
                                                 </button>
                                             </div>
@@ -167,17 +171,27 @@
 
     <!-- MODAL PILIH KONTEN -->
     <div id="content-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center border-b pb-3">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl space-y-4 h-[550px] flex flex-col">
+            <div class="flex justify-between items-center border-b pb-3 flex-shrink-0">
                 <h3 class="text-sm font-bold text-uc-dark">Pilih Konten dari Database</h3>
                 <button type="button" onclick="closeContentModal()" class="text-gray-400 hover:text-red-500 p-1">
                     <i class="fa-solid fa-xmark text-sm"></i>
                 </button>
             </div>
-
+            <!-- SEARCH BAR -->
+            <div class="py-1 flex-shrink-0">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" id="contentSearchInput" onkeyup="filterContentItems()"
+                        placeholder="Cari judul konten..."
+                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
+                </div>
+            </div>
             <div class="overflow-y-auto space-y-4 flex-1 pr-1">
-                <!-- EVENT -->
-                <div>
+                <!-- 1. EVENT -->
+                <div class="category-section">
                     <h4
                         class="text-[11px] font-bold text-uc-orange uppercase tracking-wider mb-2 flex items-center gap-1.5">
                         <i class="fa-solid fa-calendar-star"></i> Konten Event
@@ -188,14 +202,16 @@
                             @if (strtolower($content->content_category ?? '') == 'event')
                                 @php $hasEvent = true; @endphp
                                 <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-orange-50 transition-all cursor-pointer"
+                                    data-title="{{ strtolower($content->content_title) }}"
                                     onclick="addContentToPlaylist('{{ $content->contents_id ?? $content->content_title }}', '{{ $content->content_title }}', '{{ $content->full_url }}', {{ $content->is_image ? 'true' : 'false' }}, {{ $content->duration_seconds }})">
                                     <div>
                                         <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
                                         <p class="text-[10px] text-gray-400">Tipe:
-                                            {{ strtoupper($content->content_type ?? '-') }}
-                                            | Durasi: {{ $content->duration_seconds }}s</p>
+                                            {{ strtoupper($content->content_type ?? '-') }} | Durasi:
+                                            {{ $content->duration_seconds }}s</p>
                                     </div>
-                                    <span class="bg-uc-orange text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
+                                    <span
+                                        class="bg-uc-orange text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
                                         Pilih</span>
                                 </div>
                             @endif
@@ -205,32 +221,127 @@
                         @endif
                     </div>
                 </div>
-
-                <!-- DAILY -->
-                <div class="pt-2">
-                    <h4 class="text-[11px] font-bold text-uc-green uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        Konten Daily
+                <!-- 2. REGULAR CONTENT -->
+                <div class="category-section pt-2">
+                    <h4
+                        class="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-lines"></i> Regular Content
                     </h4>
                     <div class="space-y-2">
-                        @php $hasDaily = false; @endphp
+                        @php $hasRegular = false; @endphp
                         @foreach ($contents as $content)
-                            @if (strtolower($content->content_category ?? '') == 'daily' || empty($content->content_category))
-                                @php $hasDaily = true; @endphp
-                                <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-emerald-50 transition-all cursor-pointer"
+                            @if (strtolower($content->content_category ?? '') == 'regular content' || empty($content->content_category))
+                                @php $hasRegular = true; @endphp
+                                <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-blue-50 transition-all cursor-pointer"
+                                    data-title="{{ strtolower($content->content_title) }}"
                                     onclick="addContentToPlaylist('{{ $content->contents_id ?? $content->content_title }}', '{{ $content->content_title }}', '{{ $content->full_url }}', {{ $content->is_image ? 'true' : 'false' }}, {{ $content->duration_seconds }})">
                                     <div>
                                         <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
                                         <p class="text-[10px] text-gray-400">Tipe:
-                                            {{ strtoupper($content->content_type ?? '-') }}
-                                            | Durasi: {{ $content->duration_seconds }}s</p>
+                                            {{ strtoupper($content->content_type ?? '-') }} | Durasi:
+                                            {{ $content->duration_seconds }}s</p>
                                     </div>
-                                    <span class="bg-uc-green text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
+                                    <span class="bg-blue-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
                                         Pilih</span>
                                 </div>
                             @endif
                         @endforeach
-                        @if (!$hasDaily)
-                            <p class="text-[11px] text-gray-400 italic pl-2">Tidak ada konten daily tersedia.</p>
+                        @if (!$hasRegular)
+                            <p class="text-[11px] text-gray-400 italic pl-2">Tidak ada regular content tersedia.</p>
+                        @endif
+                    </div>
+                </div>
+                <!-- 3. PROMOTION -->
+                <div class="category-section pt-2">
+                    <h4
+                        class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullhorn"></i> Promotion
+                    </h4>
+                    <div class="space-y-2">
+                        @php $hasPromotion = false; @endphp
+                        @foreach ($contents as $content)
+                            @if (strtolower($content->content_category ?? '') == 'promotion')
+                                @php $hasPromotion = true; @endphp
+                                <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-purple-50 transition-all cursor-pointer"
+                                    data-title="{{ strtolower($content->content_title) }}"
+                                    onclick="addContentToPlaylist('{{ $content->contents_id ?? $content->content_title }}', '{{ $content->content_title }}', '{{ $content->full_url }}', {{ $content->is_image ? 'true' : 'false' }}, {{ $content->duration_seconds }})">
+                                    <div>
+                                        <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
+                                        <p class="text-[10px] text-gray-400">Tipe:
+                                            {{ strtoupper($content->content_type ?? '-') }} | Durasi:
+                                            {{ $content->duration_seconds }}s</p>
+                                    </div>
+                                    <span
+                                        class="bg-purple-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
+                                        Pilih</span>
+                                </div>
+                            @endif
+                        @endforeach
+                        @if (!$hasPromotion)
+                            <p class="text-[11px] text-gray-400 italic pl-2">Tidak ada konten promotion tersedia.</p>
+                        @endif
+                    </div>
+                </div>
+                <!-- 4. ACHIEVEMENT -->
+                <div class="category-section pt-2">
+                    <h4
+                        class="text-[11px] font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-trophy"></i> Achievement
+                    </h4>
+                    <div class="space-y-2">
+                        @php $hasAchievement = false; @endphp
+                        @foreach ($contents as $content)
+                            @if (strtolower($content->content_category ?? '') == 'achievement')
+                                @php $hasAchievement = true; @endphp
+                                <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-amber-50 transition-all cursor-pointer"
+                                    data-title="{{ strtolower($content->content_title) }}"
+                                    onclick="addContentToPlaylist('{{ $content->contents_id ?? $content->content_title }}', '{{ $content->content_title }}', '{{ $content->full_url }}', {{ $content->is_image ? 'true' : 'false' }}, {{ $content->duration_seconds }})">
+                                    <div>
+                                        <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
+                                        <p class="text-[10px] text-gray-400">Tipe:
+                                            {{ strtoupper($content->content_type ?? '-') }} | Durasi:
+                                            {{ $content->duration_seconds }}s</p>
+                                    </div>
+                                    <span
+                                        class="bg-amber-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
+                                        Pilih</span>
+                                </div>
+                            @endif
+                        @endforeach
+                        @if (!$hasAchievement)
+                            <p class="text-[11px] text-gray-400 italic pl-2">Tidak ada konten achievement tersedia.</p>
+                        @endif
+                    </div>
+                </div>
+                <!-- 5. BUSINESS & COMMUNITY -->
+                <div class="category-section pt-2">
+                    <h4
+                        class="text-[11px] font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-handshake"></i> Business & Community
+                    </h4>
+                    <div class="space-y-2">
+                        @php $hasBusiness = false; @endphp
+                        @foreach ($contents as $content)
+                            @if (strtolower($content->content_category ?? '') == 'business & community')
+                                @php $hasBusiness = true; @endphp
+                                <div class="modal-item flex items-center justify-between p-3 border border-gray-100 rounded-xl hover:bg-emerald-50 transition-all cursor-pointer"
+                                    data-title="{{ strtolower($content->content_title) }}"
+                                    onclick="addContentToPlaylist('{{ $content->contents_id ?? $content->content_title }}', '{{ $content->content_title }}', '{{ $content->full_url }}', {{ $content->is_image ? 'true' : 'false' }}, {{ $content->duration_seconds }})">
+                                    <div>
+                                        <p class="text-xs font-bold text-uc-dark">{{ $content->content_title }}</p>
+                                        <p class="text-[10px] text-gray-400">Tipe:
+                                            {{ strtoupper($content->content_type ?? '-') }} | Durasi:
+                                            {{ $content->duration_seconds }}s</p>
+                                    </div>
+                                    <span
+                                        class="bg-emerald-600 text-white text-[10px] px-3 py-1.5 rounded-lg font-semibold">+
+                                        Pilih</span>
+                                </div>
+                            @endif
+                        @endforeach
+                        @if (!$hasBusiness)
+                            <p class="text-[11px] text-gray-400 italic pl-2">Tidak ada konten business & community
+                                tersedia.</p>
                         @endif
                     </div>
                 </div>
@@ -478,6 +589,33 @@
                 alertBox.style.opacity = '0';
                 setTimeout(() => alertBox.classList.add('hidden'), 500);
             }
+        }
+
+        function filterContentItems() {
+            let input = document.getElementById('contentSearchInput').value.toLowerCase();
+            let sections = document.querySelectorAll('.category-section');
+
+            sections.forEach(section => {
+                let items = section.querySelectorAll('.modal-item');
+                let hasVisibleItem = false;
+
+                items.forEach(item => {
+                    let title = item.getAttribute('data-title');
+                    if (title.includes(input)) {
+                        item.style.display = 'flex';
+                        hasVisibleItem = true;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Sembunyikan seluruh section kategori jika tidak ada item yang cocok di dalamnya
+                if (hasVisibleItem) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
         }
     </script>
 @endsection
