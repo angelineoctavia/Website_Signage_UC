@@ -101,7 +101,7 @@ class GoogleDriveController extends Controller
         ];
     }
 
-    public function streamFile($fileId, $ext = 'mp4')
+    public function streamFile(Request $request, $fileId, $ext = 'mp4')
     {
         $mimeMap = [
             'mp4'  => 'video/mp4',
@@ -113,56 +113,62 @@ class GoogleDriveController extends Controller
         ];
         $mimeType = $mimeMap[strtolower($ext)] ?? 'application/octet-stream';
 
-        // Cek cache lokal dulu — kalau sudah pernah didownload, langsung sajikan dari sini (tanpa hit Google Drive API lagi)
         $cachePath = 'drive-cache/' . $fileId . '.' . $ext;
+
+        $content = null;
         if (Storage::exists($cachePath)) {
             $content = Storage::get($cachePath);
+        } else {
+            $client = new Google_Client();
+            $client->setClientId(env('GOOGLE_CLIENT_ID'));
+            $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
 
-            return response($content, 200)
-                ->header('Content-Type', $mimeType)
-                ->header('Cache-Control', 'public, max-age=31536000')
-                ->header('Access-Control-Allow-Origin', '*');
-        }
-
-        // Belum ada di cache lokal — ambil dari Google Drive API, lalu simpan buat request berikutnya
-        $client = new Google_Client();
-        $client->setClientId(env('GOOGLE_CLIENT_ID'));
-        $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-
-        if (!Storage::exists('google-token.json')) {
-            abort(404, 'Google Drive belum terhubung.');
-        }
-
-        $token = json_decode(Storage::get('google-token.json'), true);
-        $client->setAccessToken($token);
-
-        if ($client->isAccessTokenExpired()) {
-            if ($client->getRefreshToken()) {
-                $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                Storage::put('google-token.json', json_encode($client->getAccessToken()));
-            } else {
-                abort(404, 'Token Google Drive kedaluwarsa.');
+            if (!Storage::exists('google-token.json')) {
+                abort(404, 'Google Drive belum terhubung.');
             }
+
+            $token = json_decode(Storage::get('google-token.json'), true);
+            $client->setAccessToken($token);
+
+            if ($client->isAccessTokenExpired()) {
+                if ($client->getRefreshToken()) {
+                    $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                    Storage::put('google-token.json', json_encode($client->getAccessToken()));
+                } else {
+                    abort(404, 'Token Google Drive kedaluwarsa.');
+                }
+            }
+
+            try {
+                $client->setDefer(true);
+                $service = new Google_Service_Drive($client);
+                $driveRequest = $service->files->get($fileId, ['alt' => 'media']);
+                $httpResponse = $client->execute($driveRequest);
+                $content = (string) $httpResponse->getBody();
+            } catch (\Throwable $e) {
+                Log::error('Google Drive stream failed for file ' . $fileId . ': ' . $e->getMessage());
+                abort(404, 'File tidak ditemukan di Google Drive.');
+            }
+
+            if (empty($content) || strlen($content) < 100) {
+                Log::warning('Google Drive returned empty/suspicious content for file ' . $fileId);
+                abort(404, 'File gagal diambil dari Google Drive (kemungkinan rate limit).');
+            }
+
+            Storage::put($cachePath, $content);
         }
 
-        try {
-            $client->setDefer(true);
-            $service = new Google_Service_Drive($client);
-            $request = $service->files->get($fileId, ['alt' => 'media']);
-
-            $httpResponse = $client->execute($request);
-            $content = (string) $httpResponse->getBody();
-        } catch (\Throwable $e) {
-            Log::error('Google Drive stream failed for file ' . $fileId . ': ' . $e->getMessage());
-            abort(404, 'File tidak ditemukan di Google Drive.');
-        }
-
-        // Simpan ke cache lokal supaya request berikutnya tidak perlu hit Google Drive API lagi
-        Storage::put($cachePath, $content);
-
-        return response($content, 200)
+        $response = response($content, 200)
             ->header('Content-Type', $mimeType)
             ->header('Cache-Control', 'public, max-age=31536000')
             ->header('Access-Control-Allow-Origin', '*');
+
+        // Kalau ada ?download=1, paksa browser download bukan tampilkan langsung
+        if ($request->query('download')) {
+            $downloadName = $request->query('name', $fileId) . '.' . $ext;
+            $response->header('Content-Disposition', 'attachment; filename="' . $downloadName . '"');
+        }
+
+        return $response;
     }
 }
