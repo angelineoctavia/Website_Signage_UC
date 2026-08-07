@@ -10,6 +10,11 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+
 class DashboardController extends Controller
 {
     public function index(Request $request)
@@ -204,6 +209,108 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Playlist berhasil ditayangkan ke layar TV Signage!'
+        ]);
+    }
+
+    public function exportExcel()
+    {
+        $contents = DB::table('contents')
+            ->join('users', 'contents.users_id', '=', 'users.users_id')
+            ->where('contents.status_del', '0')
+            ->select('contents.*', 'users.users_name')
+            ->orderBy('contents.content_category')
+            ->get();
+
+        $spreadsheet = new Spreadsheet();
+
+        // ================= SHEET 1: Daftar Konten =================
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('Daftar Konten');
+
+        $headers = ['No', 'Judul Konten', 'Kategori', 'Tipe File', 'Durasi (detik)', 'Pengunggah'];
+        $sheet1->fromArray($headers, null, 'A1');
+
+        $headerStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F27D00']],
+            'alignment' => ['horizontal' => 'center'],
+        ];
+        $sheet1->getStyle('A1:F1')->applyFromArray($headerStyle);
+
+        $row = 2;
+        foreach ($contents as $index => $content) {
+            $sheet1->fromArray([
+                $index + 1,
+                $content->content_title,
+                $content->content_category,
+                strtoupper($content->content_type),
+                $content->content_duration,
+                $content->users_name,
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'F') as $col) {
+            $sheet1->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet1->getStyle('A1:F' . ($row - 1))
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        // ================= SHEET 2: Ringkasan Kategori =================
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('Ringkasan Kategori');
+
+        $sheet2->fromArray(['Kategori', 'Total Konten'], null, 'A1');
+        $sheet2->getStyle('A1:B1')->applyFromArray($headerStyle);
+
+        $categorySummary = $contents->groupBy('content_category')->map->count();
+
+        $row = 2;
+        foreach ($categorySummary as $category => $total) {
+            $sheet2->fromArray([$category ?: 'Tanpa Kategori', $total], null, 'A' . $row);
+            $row++;
+        }
+        $sheet2->fromArray(['Total Keseluruhan', $contents->count()], null, 'A' . $row);
+        $sheet2->getStyle('A' . $row . ':B' . $row)->getFont()->setBold(true);
+
+        foreach (range('A', 'B') as $col) {
+            $sheet2->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet2->getStyle('A1:B' . $row)
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        // ================= SHEET 3: Ringkasan Pengunggah =================
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('Ringkasan Pengunggah');
+
+        $sheet3->fromArray(['Pengunggah', 'Total Upload'], null, 'A1');
+        $sheet3->getStyle('A1:B1')->applyFromArray($headerStyle);
+
+        $uploaderSummary = $contents->groupBy('users_name')->map->count();
+
+        $row = 2;
+        foreach ($uploaderSummary as $uploader => $total) {
+            $sheet3->fromArray([$uploader, $total], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'B') as $col) {
+            $sheet3->getColumnDimension($col)->setAutoSize(true);
+        }
+        $sheet3->getStyle('A1:B' . ($row - 1))
+            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'Laporan_Konten_Signage_' . now()->format('Y-m-d_His') . '.xlsx';
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 }

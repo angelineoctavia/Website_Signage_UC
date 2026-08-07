@@ -553,6 +553,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- CARD EXPORT LAPORAN EXCEL -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center space-x-2">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Export Laporan</span>
+            </div>
+            <div class="p-5 bg-white">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+                    <div class="border border-gray-200 rounded-xl p-4">
+                        <div class="w-9 h-9 bg-orange-100 text-uc-orange rounded-lg flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-list"></i>
+                        </div>
+                        <p class="text-xs font-bold text-uc-dark mb-1">Daftar Konten</p>
+                        <p class="text-[11px] text-gray-500">Judul konten, kategori, tipe file, durasi, dan nama pengunggah
+                            untuk setiap konten yang tersimpan.</p>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4">
+                        <div
+                            class="w-9 h-9 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-tags"></i>
+                        </div>
+                        <p class="text-xs font-bold text-uc-dark mb-1">Ringkasan Kategori</p>
+                        <p class="text-[11px] text-gray-500">Jumlah total konten pada masing-masing kategori (Event, Daily,
+                            dll), lengkap dengan total keseluruhan.</p>
+                    </div>
+                    <div class="border border-gray-200 rounded-xl p-4">
+                        <div class="w-9 h-9 bg-blue-100 text-uc-blue rounded-lg flex items-center justify-center mb-3">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <p class="text-xs font-bold text-uc-dark mb-1">Ringkasan Pengunggah</p>
+                        <p class="text-[11px] text-gray-500">Jumlah total konten yang di-upload oleh masing-masing
+                            pengguna/admin.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+                    <div>
+                        <p class="text-xs font-semibold text-uc-dark">Unduh Laporan Lengkap (.xlsx)</p>
+                        <p class="text-[11px] text-gray-400">File berisi 3 sheet sesuai deskripsi di atas.</p>
+                    </div>
+                    <a href="{{ route('dashboard.export') }}"
+                        class="inline-flex items-center space-x-1.5 bg-uc-blue hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors">
+                        <i class="fa-solid fa-download text-[11px]"></i>
+                        <span>Download</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>

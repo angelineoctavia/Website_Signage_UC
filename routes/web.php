@@ -83,6 +83,9 @@ Route::middleware(['auth', 'role:1'])->group(function () {
 
     // Route untuk memperbarui/menayangkan signage status ke TV
     Route::post('/signage/update/{playlistId}', [DashboardController::class, 'updateSignageStatus'])->name('signage.update');
+
+    // Buat Excel
+    Route::get('/dashboard/export-excel', [DashboardController::class, 'exportExcel'])->name('dashboard.export');
 });
 
 // ROUTE KHUSUS TV / SIGNAGE DISPLAY (Role 2)

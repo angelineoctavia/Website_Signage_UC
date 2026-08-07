@@ -142,6 +142,7 @@ class GoogleDriveController extends Controller
             try {
                 $client->setDefer(true);
                 $service = new Google_Service_Drive($client);
+                 /** @var \Psr\Http\Message\RequestInterface $driveRequest */
                 $driveRequest = $service->files->get($fileId, ['alt' => 'media']);
                 $httpResponse = $client->execute($driveRequest);
                 $content = (string) $httpResponse->getBody();
