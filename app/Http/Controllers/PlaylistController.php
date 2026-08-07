@@ -13,10 +13,12 @@ class PlaylistController extends Controller
     public function index()
     {
         $contents = $this->getContentsWithMeta();
+        $bookedDates = $this->getBookedDates(null);
 
         return view('playlist', [
             'contents' => $contents,
             'editMode' => false,
+            'bookedDates' => $bookedDates,
         ]);
     }
 
@@ -24,6 +26,7 @@ class PlaylistController extends Controller
     {
         $playlist = Playlist::with(['details.content'])->findOrFail($id);
         $contents = $this->getContentsWithMeta();
+        $bookedDates = $this->getBookedDates($id);
 
         $existingItems = $playlist->details->sortBy('playlist_order')->map(function ($d) {
             $content = $d->content;
@@ -45,7 +48,26 @@ class PlaylistController extends Controller
             'editMode' => true,
             'playlist' => $playlist,
             'existingItems' => $existingItems,
+            'bookedDates' => $bookedDates,
         ]);
+    }
+
+    private function getBookedDates($excludeId = null)
+    {
+        $query = Playlist::where('status_del', '0');
+        if ($excludeId) {
+            $query->where('playlist_id', '!=', $excludeId);
+        }
+        $bookedRanges = $query->get(['playlist_start_date', 'playlist_end_date']);
+
+        $bookedDates = [];
+        foreach ($bookedRanges as $r) {
+            $period = \Carbon\CarbonPeriod::create($r->playlist_start_date, $r->playlist_end_date);
+            foreach ($period as $date) {
+                $bookedDates[] = $date->format('Y-m-d');
+            }
+        }
+        return array_values(array_unique($bookedDates));
     }
 
     public function store(Request $request)
@@ -143,7 +165,7 @@ class PlaylistController extends Controller
         $query = Playlist::where('status_del', '0')
             ->where(function ($q) use ($request) {
                 $q->where('playlist_start_date', '<=', $request->playlist_end_date)
-                  ->where('playlist_end_date', '>=', $request->playlist_start_date);
+                    ->where('playlist_end_date', '>=', $request->playlist_start_date);
             });
 
         if ($excludeId) {

@@ -237,7 +237,7 @@
                     currentVideoEl = null;
                     const img = document.createElement('img');
                     img.src = item.url; // Browser otomatis mengambil dari cache jika offline
-                    img.className = 'w-full h-full object-cover';
+                    img.className = 'w-full h-full object-contain';
                     container.appendChild(img);
 
                     activeTimer = setTimeout(() => {
@@ -248,7 +248,7 @@
                 } else if (item.type === 'video') {
                     const video = document.createElement('video');
                     video.src = item.url; // Browser otomatis mengambil dari cache jika offline
-                    video.className = 'w-full h-full object-cover';
+                    video.className = 'w-full h-full object-contain';
                     video.autoplay = true;
                     video.muted = false; // Tizen SSSP (signage) umumnya tidak strict soal autoplay+audio seperti Chrome desktop
                     video.playsInline = true;

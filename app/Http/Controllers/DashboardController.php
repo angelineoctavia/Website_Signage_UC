@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Playlist;
-use App\Models\SignageStatus;
 use App\Models\Content;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -26,6 +25,7 @@ class DashboardController extends Controller
         $month = (int) $request->query('month', now()->month);
         $year = (int) $request->query('year', now()->year);
         $categoryFilter = $request->query('category', 'all');
+        $todayStr = now()->format('Y-m-d');
 
         $playlists = Playlist::with(['details.content.user'])
             ->where('status_del', '0')
@@ -46,11 +46,10 @@ class DashboardController extends Controller
         $activePlaylists = $playlists->count();
         $averagePlaytime = round(Content::query()->where('status_del', '0')->average('content_duration') ?? 0, 1);
 
-        $currentSignage = DB::table('signage_status')
-            ->join('playlists', 'signage_status.playlist_id', '=', 'playlists.playlist_id')
-            ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
-            ->orderBy('signage_status.status_updated_at', 'desc')
-            ->select('signage_status.*', 'playlists.playlist_start_date', 'users.users_name as updated_by_name')
+        // Active Playlist sekarang ditentukan dari TANGGAL, sama persis logic yang dipakai TV
+        $activePlaylistToday = Playlist::where('status_del', '0')
+            ->whereDate('playlist_start_date', '<=', $todayStr)
+            ->whereDate('playlist_end_date', '>=', $todayStr)
             ->first();
 
         $allSignageHistories = DB::table('signage_status')
@@ -77,7 +76,6 @@ class DashboardController extends Controller
         $startOfMonth = $currentMonthCarbon->copy()->startOfMonth();
         $endOfMonth = $currentMonthCarbon->copy()->endOfMonth();
         $startingDayOfWeek = $startOfMonth->dayOfWeek == 0 ? 6 : $startOfMonth->dayOfWeek - 1;
-        $todayStr = now()->format('Y-m-d');
 
         $calendarCells = array_fill(0, $startingDayOfWeek, null);
         for ($d = 1; $d <= $endOfMonth->day; $d++) {
@@ -167,6 +165,7 @@ class DashboardController extends Controller
                         'end_date' => $p->playlist_end_date,
                         'items' => $items,
                         'videos' => $videos,
+                        'is_live' => $p->playlist_id == ($activePlaylistToday->playlist_id ?? null),
                     ];
                 }
             }
@@ -183,7 +182,7 @@ class DashboardController extends Controller
             'totalContent',
             'activePlaylists',
             'averagePlaytime',
-            'currentSignage',
+            'activePlaylistToday',
             'allSignageHistories',
             'allContents',
             'trashedPlaylists',
@@ -197,21 +196,6 @@ class DashboardController extends Controller
         ));
     }
 
-    public function updateSignageStatus(Request $request, $id)
-    {
-        SignageStatus::create([
-            'playlist_id' => $id,
-            'users_id' => Auth::user()->users_id,
-            'status_updated_by' => Auth::user()->users_id,
-            'status_updated_at' => Carbon::now('Asia/Jakarta'),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Playlist berhasil ditayangkan ke layar TV Signage!'
-        ]);
-    }
-
     public function exportExcel()
     {
         $contents = DB::table('contents')
@@ -223,7 +207,6 @@ class DashboardController extends Controller
 
         $spreadsheet = new Spreadsheet();
 
-        // ================= SHEET 1: Daftar Konten =================
         $sheet1 = $spreadsheet->getActiveSheet();
         $sheet1->setTitle('Daftar Konten');
 
@@ -256,7 +239,6 @@ class DashboardController extends Controller
         $sheet1->getStyle('A1:F' . ($row - 1))
             ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
-        // ================= SHEET 2: Ringkasan Kategori =================
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('Ringkasan Kategori');
 
@@ -279,7 +261,6 @@ class DashboardController extends Controller
         $sheet2->getStyle('A1:B' . $row)
             ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
-        // ================= SHEET 3: Ringkasan Pengunggah =================
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('Ringkasan Pengunggah');
 

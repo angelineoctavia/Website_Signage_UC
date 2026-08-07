@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\SignageStatus;
+use App\Models\Playlist;
+use App\Models\Content;
 use Illuminate\Support\Facades\DB;
 
 class SignageController extends Controller
@@ -17,17 +18,25 @@ class SignageController extends Controller
     public function getPlaylistData(Request $request)
     {
         try {
-            $latestStatus = SignageStatus::orderBy('status_updated_at', 'desc')
-                ->orderBy('status_id', 'desc')
+            $today = now()->format('Y-m-d');
+
+            // Otomatis cari playlist yang tanggal hari ini masuk ke rentang start-end nya
+            $activePlaylist = Playlist::where('status_del', '0')
+                ->whereDate('playlist_start_date', '<=', $today)
+                ->whereDate('playlist_end_date', '>=', $today)
                 ->first();
 
-            if (!$latestStatus) {
-                return response()->json(['items' => []], 200);
+            if (!$activePlaylist) {
+                return response()->json([
+                    'version' => 'none-' . $today,
+                    'device_target' => 'Samsung Signage 24 Inch',
+                    'items' => []
+                ], 200);
             }
 
             $playlistDetails = DB::table('playlist_details')
                 ->join('contents', 'playlist_details.contents_id', '=', 'contents.contents_id')
-                ->where('playlist_details.playlist_id', $latestStatus->playlist_id)
+                ->where('playlist_details.playlist_id', $activePlaylist->playlist_id)
                 ->orderBy('playlist_details.playlist_order', 'asc')
                 ->select('contents.*', 'playlist_details.playlist_order')
                 ->get();
@@ -40,8 +49,7 @@ class SignageController extends Controller
                     continue;
                 }
 
-                // Pakai resolver terpusat — otomatis handle: file ID Drive baru, URL Drive lama, atau path lokal lama
-                $fileUrl = \App\Models\Content::resolveFileUrl($filePath, $detail->content_type ?? null);
+                $fileUrl = Content::resolveFileUrl($filePath, $detail->content_type ?? null);
 
                 $contentType = strtolower($detail->content_type ?? '');
                 $isImage = in_array($contentType, ['image', 'img', 'jpg', 'jpeg', 'png']);
@@ -55,7 +63,8 @@ class SignageController extends Controller
             }
 
             return response()->json([
-                'version' => '1.' . $latestStatus->status_id,
+                'version' => 'p' . $activePlaylist->playlist_id . '-' . $today,
+                'playlist_id' => $activePlaylist->playlist_id,
                 'device_target' => 'Samsung Signage 24 Inch',
                 'items' => $items
             ]);

@@ -60,17 +60,46 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-semibold text-uc-dark mb-1.5">Start Date</label>
-                                <input type="date" name="playlist_start_date" id="playlist_start_date" required
-                                    value="{{ old('playlist_start_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_start_date)->format('Y-m-d') : '') }}"
-                                    onchange="document.getElementById('playlist_end_date').min = this.value;"
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
+                                <div class="relative">
+                                    <input type="text" name="playlist_start_date" id="playlist_start_date" required
+                                        readonly autocomplete="off"
+                                        value="{{ old('playlist_start_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_start_date)->format('Y-m-d') : '') }}"
+                                        placeholder="Pilih tanggal"
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors cursor-pointer">
+                                    <i
+                                        class="fa-solid fa-calendar-days absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-uc-dark mb-1.5">End Date</label>
-                                <input type="date" name="playlist_end_date" id="playlist_end_date" required
-                                    value="{{ old('playlist_end_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_end_date)->format('Y-m-d') : '') }}"
-                                    class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors">
+                                <div class="relative">
+                                    <input type="text" name="playlist_end_date" id="playlist_end_date" required readonly
+                                        autocomplete="off"
+                                        value="{{ old('playlist_end_date', $editMode ? \Carbon\Carbon::parse($playlist->playlist_end_date)->format('Y-m-d') : '') }}"
+                                        placeholder="Pilih tanggal"
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-10 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors cursor-pointer">
+                                    <i
+                                        class="fa-solid fa-calendar-days absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-4 text-[11px]">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-3 h-3 rounded bg-red-400"></span>
+                                    <span class="text-gray-500">Sudah ada playlist</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-3 h-3 rounded bg-emerald-400"></span>
+                                    <span class="text-gray-500">Tersedia</span>
+                                </div>
+                                <span class="text-gray-400">— klik ikon kalender di atas untuk lihat & pilih tanggal</span>
+                            </div>
+                            <p id="dateOverlapWarning" class="hidden text-[11px] text-red-500 font-medium">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Tanggal ini sudah dipakai playlist lain,
+                                silakan pilih tanggal lain.
+                            </p>
                         </div>
 
                         <div class="space-y-3">
@@ -161,9 +190,9 @@
                     class="bg-red-400 hover:bg-red-500 text-white font-semibold px-8 py-3.5 rounded-xl text-xs transition-all shadow-sm text-center">
                     Cancel
                 </a>
-                <button type="submit"
+                <button type="submit" id="submitPlaylistBtn"
                     class="bg-uc-green hover:bg-emerald-600 text-white font-semibold px-10 py-3.5 rounded-xl text-xs transition-all shadow-sm">
-                    {{ $editMode ? 'Update' : 'Save' }}
+                    {{ isset($editMode) && $editMode ? 'Update Playlist' : 'Save' }}
                 </button>
             </div>
         </form>
@@ -349,6 +378,10 @@
         </div>
     </div>
 
+    <!-- Flatpickr: custom date picker biar bisa nge-highlight tanggal booked/tersedia -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         .sortable-drag {
             opacity: 0 !important;
@@ -370,6 +403,152 @@
 
         .drag-handle:active {
             cursor: grabbing !important;
+        }
+
+        /* Font & tampilan umum kalender */
+        .flatpickr-calendar {
+            font-family: inherit !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+            border-radius: 16px !important;
+            width: auto !important;
+            padding: 12px !important;
+        }
+
+        .flatpickr-current-month {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: #1F2937 !important;
+        }
+
+        .flatpickr-current-month input.cur-year,
+        .flatpickr-current-month .flatpickr-monthDropdown-months {
+            font-weight: 700 !important;
+        }
+
+        .flatpickr-calendar .flatpickr-monthDropdown-months {
+            max-height: 100px !important;
+            overflow-y: auto !important;
+        }
+
+        .flatpickr-current-month input.cur-year {
+            display: none !important;
+        }
+
+        .flatpickr-current-month .numInputWrapper span.arrowUp,
+        .flatpickr-current-month .numInputWrapper span.arrowDown {
+            display: none !important;
+        }
+
+        .flatpickr-current-month .numInputWrapper {
+            width: 60px !important;
+            padding: 0 !important;
+        }
+
+        .flatpickr-year-select {
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            color: #1F2937 !important;
+            border: none !important;
+            background: transparent !important;
+            cursor: pointer;
+            padding: 0 4px;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            max-height: 200px;
+        }
+
+        .flatpickr-year-select:focus {
+            outline: none !important;
+        }
+
+        /* Header nama hari (Sun/Mon/Tue/dst) */
+        .flatpickr-weekdays {
+            background: transparent !important;
+            text-align: center !important;
+        }
+
+        span.flatpickr-weekday {
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            color: #6B7280 !important;
+            text-transform: none !important;
+        }
+
+        /* PERBAIKAN UTAMA: Ubah container hari menjadi CSS Grid agar kotaknya terpisah rapi (tidak nempel) */
+        .flatpickr-days {
+            width: 315px !important;
+        }
+
+        .dayContainer {
+            display: grid !important;
+            grid-template-columns: repeat(7, 1fr) !important;
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            /* Jarak antar kotak tanggal */
+            padding: 4px 0 !important;
+        }
+
+        /* Styling kotak tanggal individual */
+        .flatpickr-day {
+            width: 38px !important;
+            height: 38px !important;
+            line-height: 38px !important;
+            margin: 0 !important;
+            border-radius: 10px !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+            border: none !important;
+            box-shadow: none !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .flatpickr-day.flatpickr-disabled,
+        .flatpickr-day.flatpickr-disabled:hover {
+            cursor: default !important;
+        }
+
+        /* Status Tanggal: Booked (Merah Muda) */
+        .flatpickr-day.booked-date {
+            background: #fee2e2 !important;
+            color: #dc2626 !important;
+            cursor: default !important;
+        }
+
+        /* Status Tanggal: Available (Hijau Muda) */
+        .flatpickr-day.available-date {
+            background: #d1fae5 !important;
+            color: #059669 !important;
+        }
+
+        .flatpickr-day.available-date:hover {
+            background: #a7f3d0 !important;
+        }
+
+        /* Status Tanggal: Past / Lewat */
+        .flatpickr-day.past-date {
+            background: #f3f4f6 !important;
+            color: #9ca3af !important;
+            cursor: default !important;
+        }
+
+        /* Tanggal yang dipilih (Selected) */
+        .flatpickr-day.selected.available-date,
+        .flatpickr-day.selected {
+            background: #F27D00 !important;
+            color: #fff !important;
+            box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #F27D00 !important;
+        }
+
+        /* Tanggal hari ini (Today) */
+        .flatpickr-day.today:not(.selected) {
+            border: 2px solid #F27D00 !important;
+            background: transparent;
         }
     </style>
 
@@ -617,5 +796,124 @@
                 }
             });
         }
+    </script>
+
+    <script>
+        const bookedDates = @json($bookedDates ?? []);
+
+        function isPastDate(date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return date < today;
+        }
+
+        // Kasih class ke tanggal booked/tersedia/lampau langsung di dalam popup kalender
+        function markDateAvailability(dObj, dStr, fp, dayElem) {
+            const dateStr = flatpickr.formatDate(dayElem.dateObj, "Y-m-d");
+            const minDate = fp.config.minDate; // khusus End Date, ini ke-set = Start Date yang dipilih
+
+            if (isPastDate(dayElem.dateObj)) {
+                dayElem.classList.add('past-date');
+            } else if (minDate && dayElem.dateObj < minDate) {
+                // Tanggal sebelum Start Date - sama-sama gabisa dipilih di End Date, jadi abu-abu juga
+                dayElem.classList.add('past-date');
+            } else if (bookedDates.includes(dateStr)) {
+                dayElem.classList.add('booked-date');
+            } else {
+                dayElem.classList.add('available-date');
+            }
+        }
+
+        // Aturan tanggal yang tidak boleh diklik sama sekali: sudah lewat, atau sudah dipakai playlist lain
+        const dateDisableRules = [
+            function(date) {
+                return isPastDate(date) || bookedDates.includes(flatpickr.formatDate(date, "Y-m-d"));
+            }
+        ];
+
+        function checkDateOverlap() {
+            const start = document.getElementById('playlist_start_date').value;
+            const end = document.getElementById('playlist_end_date').value;
+            const warning = document.getElementById('dateOverlapWarning');
+            const submitBtn = document.getElementById('submitPlaylistBtn');
+            if (!start || !end) return;
+
+            let overlap = false;
+            let cur = new Date(start);
+            const endD = new Date(end);
+            while (cur <= endD) {
+                if (bookedDates.includes(cur.toISOString().slice(0, 10))) {
+                    overlap = true;
+                    break;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            warning.classList.toggle('hidden', !overlap);
+            if (submitBtn) submitBtn.disabled = overlap;
+        }
+
+        // Ganti input angka tahun bawaan Flatpickr jadi <select> scrollable
+        function setupYearDropdown(selectedDates, dateStr, instance) {
+            const yearInput = instance.currentYearElement;
+            if (!yearInput || yearInput.dataset.customized) return;
+
+            const thisYear = new Date().getFullYear();
+            const startYear = thisYear - 10;
+            const endYear = thisYear + 50;
+
+            const select = document.createElement('select');
+            select.className = 'flatpickr-year-select';
+            for (let y = startYear; y <= endYear; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === instance.currentYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+
+            select.addEventListener('change', function() {
+                instance.changeYear(parseInt(this.value));
+            });
+
+            yearInput.insertAdjacentElement('afterend', select);
+            yearInput.dataset.customized = 'true';
+        }
+
+        function syncYearDropdown(selectedDates, dateStr, instance) {
+            const sel = instance.calendarContainer.querySelector('.flatpickr-year-select');
+            if (sel) sel.value = instance.currentYear;
+        }
+
+        // Popup kalender End Date - dibuat duluan biar bisa direferensikan dari Start Date
+        const endDatePicker = flatpickr("#playlist_end_date", {
+            dateFormat: "Y-m-d",
+            disableMobile: true,
+            disable: dateDisableRules,
+            onDayCreate: markDateAvailability,
+            onReady: setupYearDropdown,
+            onYearChange: syncYearDropdown,
+            onChange: function() {
+                checkDateOverlap();
+            }
+        });
+
+        // Popup kalender Start Date
+        const startDatePicker = flatpickr("#playlist_start_date", {
+            dateFormat: "Y-m-d",
+            disableMobile: true,
+            disable: dateDisableRules,
+            onDayCreate: markDateAvailability,
+            onReady: setupYearDropdown,
+            onYearChange: syncYearDropdown,
+            onChange: function(selectedDates, dateStr) {
+                // End Date minimal sama dengan Start Date yang baru dipilih
+                endDatePicker.set('minDate', dateStr);
+                checkDateOverlap();
+            }
+        });
+
+        // Kalau load pertama kali dalam mode edit, cek juga overlap-nya
+        checkDateOverlap();
     </script>
 @endsection
