@@ -103,6 +103,14 @@ class GoogleDriveController extends Controller
 
     public function streamFile(Request $request, $fileId, $ext = 'mp4')
     {
+        $customTempDir = storage_path('app/tmp');
+        if (!is_dir($customTempDir)) {
+            mkdir($customTempDir, 0755, true);
+        }
+        ini_set('sys_temp_dir', $customTempDir);
+        putenv("TMP={$customTempDir}");
+        putenv("TEMP={$customTempDir}");
+
         $mimeMap = [
             'mp4'  => 'video/mp4',
             'mov'  => 'video/quicktime',
@@ -142,7 +150,7 @@ class GoogleDriveController extends Controller
             try {
                 $client->setDefer(true);
                 $service = new Google_Service_Drive($client);
-                 /** @var \Psr\Http\Message\RequestInterface $driveRequest */
+                /** @var \Psr\Http\Message\RequestInterface $driveRequest */
                 $driveRequest = $service->files->get($fileId, ['alt' => 'media']);
                 $httpResponse = $client->execute($driveRequest);
                 $content = (string) $httpResponse->getBody();

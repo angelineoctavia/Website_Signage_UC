@@ -132,10 +132,10 @@
 
                     <!-- TAB 1: KALENDER -->
                     <div id="tab-playlists-content" class="mb-8">
-                        <div class="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
 
                             <div
-                                class="bg-[#F27D00] text-white px-6 py-4 font-bold text-xs flex items-center justify-between">
+                                class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
                                     <i class="fa-solid fa-calendar-days text-sm"></i>
                                     <span>Playlists Calendar Schedule</span>
@@ -328,12 +328,10 @@
 
                     <!-- TAB 2: DELETED PLAYLISTS -->
                     <div id="tab-deleted-content" class="hidden">
-                        <div
-                            class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
-                            <div
-                                class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[400px]">
+                            <div class="bg-[#F27D00] text-white px-5 py-3 font-bold text-xs flex items-center justify-between">
                                 <div class="flex items-center space-x-2">
-                                    <i class="fa-solid fa-trash"></i>
+                                    <i class="fa-solid fa-trash text-sm"></i>
                                     <span>Deleted Playlists</span>
                                 </div>
                             </div>
