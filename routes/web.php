@@ -71,7 +71,7 @@ Route::middleware(['auth', 'role:1'])->group(function () {
     Route::post('/playlist', [PlaylistController::class, 'store'])->name('playlist.store');
 
     // Soft Delete & Restore Playlist
-    Route::patch('/playlist/{id}/delete', [PlaylistController::class, 'destroy'])->name('playlist.destroy');
+    Route::get('/playlist/{id}/delete', [PlaylistController::class, 'destroy'])->name('playlist.destroy');
     Route::patch('/playlist/{id}/restore', [PlaylistController::class, 'restore'])->name('playlist.restore');
 
     // Edit Playlist (prefill form create dengan data lama)

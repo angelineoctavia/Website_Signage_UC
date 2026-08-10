@@ -77,9 +77,9 @@ class AuthController extends Controller
 
         $user = Auth::user();
         if ($user->users_role == '1') {
-            return redirect()->intended('/dashboard');
+            return redirect('/dashboard');
         } else {
-            return redirect()->intended('/signage-view');
+            return redirect('/signage-view');
         }
     }
 

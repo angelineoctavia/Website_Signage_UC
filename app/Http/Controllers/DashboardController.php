@@ -52,12 +52,6 @@ class DashboardController extends Controller
             ->whereDate('playlist_end_date', '>=', $todayStr)
             ->first();
 
-        $allSignageHistories = DB::table('signage_status')
-            ->join('users', 'signage_status.status_updated_by', '=', 'users.users_id')
-            ->orderBy('signage_status.status_updated_at', 'desc')
-            ->select('signage_status.*', 'users.users_name as status_updated_by')
-            ->get();
-
         $allContents = DB::table('contents')
             ->join('users', 'contents.users_id', '=', 'users.users_id')
             ->where('contents.status_del', '0')
@@ -183,7 +177,6 @@ class DashboardController extends Controller
             'activePlaylists',
             'averagePlaytime',
             'activePlaylistToday',
-            'allSignageHistories',
             'allContents',
             'trashedPlaylists',
             'month',
