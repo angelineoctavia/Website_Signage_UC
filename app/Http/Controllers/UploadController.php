@@ -43,7 +43,7 @@ class UploadController extends Controller
         $file = $request->file('file');
         $contentType = $file->getClientOriginalExtension();
        
-        $tanggal = date('d-m-Y'); // Mengambil tanggal hari ini (format: 03-08-2026)
+        $tanggal = date('Y-m-d'); // Mengambil tanggal hari ini (format: 03-08-2026)
         $cleanTitle = Str::slug($request->input('content_title'), '_'); // Mengubah spasi jadi underscore & bersihkan karakter khusus
         $filename = "{$tanggal}_{$cleanTitle}.{$contentType}";
 
