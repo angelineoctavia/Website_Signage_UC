@@ -92,6 +92,10 @@ Route::middleware(['auth', 'role:1'])->group(function () {
 Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/signage-view', [SignageController::class, 'index']);
     Route::get('/api/signage/playlist', [SignageController::class, 'getPlaylistData']);
+    // Route khusus untuk layar Samsung Signage
+    Route::get('/signage-display', [PlaylistController::class, 'displaySignage'])->name('signage.display');
+    // Route untuk API data signage (digunakan untuk auto-update tanpa kedip)
+    Route::get('/api/signage-active', [PlaylistController::class, 'getActivePlaylistJson']);
 });
 
 // ROUTE STREAMING FILE GOOGLE DRIVE (dipakai Admin & TV, jadi cukup auth)

@@ -7,8 +7,7 @@
     <title>Samsung Signage 24 Inch - Offline Ready Player</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body,
-        html {
+        body, html {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -50,10 +49,10 @@
             top: 0;
             left: 0;
             width: 100%;
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0));
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0));
             padding: 15px 20px;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
             align-items: center;
             transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
             opacity: 0;
@@ -66,18 +65,48 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        #sync-badge {
+            font-size: 10px;
+            color: #9CA3AF;
+            background: rgba(0,0,0,0.5);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        /* ===== Double-buffer layer buat crossfade, biar ga ada momen "kosong" pas ganti konten ===== */
+        .signage-layer {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1;
+        }
+
+        .signage-layer.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        .signage-layer img,
+        .signage-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
     </style>
 </head>
 
 <body class="flex items-center justify-center h-screen bg-neutral-950">
-
     <div id="tv-frame">
 
         <div id="floating-header">
+            <span id="sync-badge">Standby</span>
             <form action="{{ route('logout') }}" method="GET">
                 @csrf
                 <button type="submit"
-                    class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all shadow-lg backdrop-blur-md">
+                    class="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition-all shadow-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -88,211 +117,281 @@
             </form>
         </div>
 
-        <div id="signage-container" class="relative w-full h-full flex items-center justify-center bg-black">
-            <p id="status-text" class="text-white text-sm animate-pulse text-center px-4">Sinkronisasi & Mengunduh
-                Konten...</p>
+        <div id="signage-container" class="relative w-full h-full bg-black">
+            <p id="status-text" class="absolute inset-0 flex items-center justify-center text-white text-sm animate-pulse text-center px-4 z-10">
+                Sinkronisasi & Mengunduh Konten...
+            </p>
+
+            <!-- Layer A & B - selalu ada di DOM, gantian yang "active" (opacity 1) -->
+            <div id="layer-a" class="signage-layer">
+                <img id="img-a" class="hidden">
+                <video id="video-a" class="hidden" playsinline></video>
+            </div>
+            <div id="layer-b" class="signage-layer">
+                <img id="img-b" class="hidden">
+                <video id="video-b" class="hidden" playsinline></video>
+            </div>
         </div>
     </div>
 
     <script>
+        // ===== SETUP =====
         let hideTimer;
-        const tvFrame = document.getElementById('tv-frame');
-        const header = document.getElementById('floating-header');
+        const tvFrame    = document.getElementById('tv-frame');
+        const header     = document.getElementById('floating-header');
+        const syncBadge  = document.getElementById('sync-badge');
+        const statusEl   = document.getElementById('status-text');
+        const CACHE_NAME = 'signage-offline-cache-v1';
+        const POLL_MS    = 10000; // cek update tiap 10 detik
 
-        // PENTING: nama ini HARUS SAMA PERSIS dengan CACHE_NAME di sw.js
-        const CACHE_NAME = 'signage-offline-cache-v2';
+        // State player
+        let currentItems  = [];
+        let currentIndex  = 0;
+        let pendingItems  = null;
+        let isPlaying     = false;  // guard buat cegah double-call playNext
+        let imageTimerId  = null;
+        let activeLayer   = 'a';    // layer mana yang lagi tampil
 
-        // Interval polling untuk cek playlist baru dari dashboard (dalam ms)
-        const POLL_INTERVAL = 20000; // 20 detik
-
-        // State pemutaran, disimpan di scope luar biar bisa di-restart pas ada playlist baru
-        let currentVersion = null;
-        let activeTimer = null;
-        let currentVideoEl = null;
-
-        function handleCursorMovement() {
+        // Hover gesture buat munculin header logout
+        function showHeader() {
             header.classList.add('visible');
             clearTimeout(hideTimer);
-            hideTimer = setTimeout(() => {
-                header.classList.remove('visible');
-            }, 3000);
+            hideTimer = setTimeout(() => header.classList.remove('visible'), 3000);
         }
+        tvFrame.addEventListener('mousemove', showHeader);
+        tvFrame.addEventListener('touchstart', showHeader);
 
-        tvFrame.addEventListener('mousemove', handleCursorMovement);
-        tvFrame.addEventListener('touchstart', handleCursorMovement);
-
-        // Daftarkan Service Worker (WAJIB agar refresh/offline bisa jalan)
+        // ===== SERVICE WORKER =====
         async function registerServiceWorker() {
-            if ('serviceWorker' in navigator) {
-                try {
-                    const reg = await navigator.serviceWorker.register('/sw.js');
-                    console.log('Service Worker terdaftar dengan scope:', reg.scope);
-                } catch (err) {
-                    console.warn('Gagal mendaftarkan Service Worker:', err);
-                }
-            } else {
-                console.warn('Browser ini tidak mendukung Service Worker.');
+            if (!('serviceWorker' in navigator)) return;
+            try {
+                await navigator.serviceWorker.register('/sw.js');
+            } catch (err) {
+                console.warn('SW gagal daftar:', err);
             }
         }
 
-        // Cek playlist terbaru dari server. Kalau ada versi baru (beda dari yang lagi diputar),
-        // download asetnya lalu langsung ganti pemutaran - TANPA reload halaman.
-        // isInitial = true hanya dipakai saat load pertama kali (untuk fallback ke cache lokal saat offline).
-        async function checkAndSyncPlaylist(isInitial = false) {
-            const statusText = document.getElementById('status-text');
+        // ===== CACHE HELPER =====
+        async function downloadAndCachePlaylist(playlist) {
+            localStorage.setItem('cached_playlist', JSON.stringify(playlist));
 
+            if (!('caches' in window)) return;
+            const cache = await caches.open(CACHE_NAME);
+
+            for (const item of playlist.items) {
+                try {
+                    const res = await fetch(item.url, { cache: 'no-store' });
+                    if (res.ok) await cache.put(item.url, res.clone());
+                } catch (e) {
+                    console.warn('Cache miss untuk:', item.url);
+                }
+            }
+        }
+
+        // ===== INIT: ambil playlist, cache, mulai main =====
+        async function initSignagePlayer() {
             try {
-                // cache: 'no-store' -> pastikan selalu tanya versi TERBARU ke server, bukan versi lama
-                const response = await fetch('/api/signage/playlist', { cache: 'no-store' });
-                if (!response.ok) throw new Error('Gagal terhubung ke server');
+                const res = await fetch('/api/signage/playlist', { cache: 'no-store' });
+                if (!res.ok) throw new Error('Server tidak merespons');
 
-                const playlist = await response.json();
+                const playlist = await res.json();
 
                 if (!playlist.items || playlist.items.length === 0) {
-                    if (isInitial) statusText.textContent = "Playlist kosong.";
+                    statusEl.textContent = 'Tidak ada playlist terjadwal untuk hari ini.';
+                    localStorage.removeItem('cached_playlist');
                     return;
                 }
 
-                // Kalau versinya sama kayak yang lagi diputar sekarang, tidak usah diapa-apain
-                // (biar video yang lagi jalan tidak keinterupsi terus-terusan tiap polling)
-                if (playlist.version === currentVersion) return;
+                statusEl.textContent = 'Mengunduh konten...';
+                await downloadAndCachePlaylist(playlist);
 
-                console.log(`Playlist baru terdeteksi (versi ${currentVersion} -> ${playlist.version}), sinkronisasi...`);
-
-                // Simpan metadata playlist ke localStorage untuk cadangan offline
-                localStorage.setItem('cached_playlist', JSON.stringify(playlist));
-
-                // Download & simpan fisik file media ke Cache Storage browser TV
-                if ('caches' in window) {
-                    const cache = await caches.open(CACHE_NAME);
-                    if (isInitial) statusText.textContent = "Mengunduh aset media ke memori TV...";
-
-                    for (const item of playlist.items) {
-                        try {
-                            const mediaResponse = await fetch(item.url);
-                            if (mediaResponse.ok) {
-                                await cache.put(item.url, mediaResponse);
-                            } else {
-                                console.warn(`Gagal mendownload asset: ${item.url}`);
-                            }
-                        } catch (err) {
-                            console.warn(`Skipping asset due to network/CORS error: ${item.url}`);
-                        }
-                    }
-                }
-
-                currentVersion = playlist.version;
+                syncBadge.textContent = 'Tersinkron · v' + playlist.version;
                 startLoop(playlist.items);
 
-            } catch (error) {
-                console.warn("Gagal ambil playlist terbaru / offline:", error);
+            } catch (err) {
+                console.warn('Offline / gagal koneksi:', err);
+                statusEl.textContent = 'Memuat dari cache offline...';
 
-                // Fallback ke cache lokal HANYA saat load pertama kali (belum ada apa-apa yang diputar).
-                // Kalau ini cuma polling biasa dan lagi offline sesaat, biarkan playlist yang sedang
-                // berjalan tetap lanjut, jangan diinterupsi.
-                if (isInitial) {
-                    statusText.textContent = "Koneksi terputus. Memuat dari Cache Offline...";
-                    const cachedData = localStorage.getItem('cached_playlist');
-                    if (cachedData) {
-                        const playlist = JSON.parse(cachedData);
-                        if (playlist.items && playlist.items.length > 0) {
-                            currentVersion = playlist.version;
-                            startLoop(playlist.items);
-                            return;
-                        }
-                    }
-                    statusText.textContent = "Tidak ada koneksi internet & cache lokal kosong.";
+                const raw = localStorage.getItem('cached_playlist');
+                if (raw) {
+                    const cached = JSON.parse(raw);
+                    syncBadge.textContent = 'Offline · cache ' + (cached.version ?? '?');
+                    startLoop(cached.items);
+                } else {
+                    statusEl.textContent = 'Tidak ada koneksi & cache kosong.';
                 }
+            }
+
+            // Mulai polling setelah init selesai
+            setInterval(checkForUpdates, POLL_MS);
+        }
+
+        // ===== POLLING: cek versi terbaru di background =====
+        async function checkForUpdates() {
+            try {
+                const res = await fetch('/api/signage/playlist', { cache: 'no-store' });
+                if (!res.ok) return;
+
+                const playlist = await res.json();
+                const raw = localStorage.getItem('cached_playlist');
+                const cachedVersion = raw ? JSON.parse(raw).version : null;
+
+                if (
+                    playlist.version &&
+                    playlist.version !== cachedVersion &&
+                    playlist.items?.length > 0
+                ) {
+                    console.log('Update:', cachedVersion, '→', playlist.version);
+                    syncBadge.textContent = 'Mengunduh update...';
+                    await downloadAndCachePlaylist(playlist);
+                    pendingItems = playlist.items;
+                    syncBadge.textContent = 'Update siap · menunggu giliran...';
+                }
+            } catch (_) {
+                // Offline saat polling — diam saja, lanjut main dari cache
             }
         }
 
-        // Fungsi Looping Pemutaran Media
+        // ===== LOOP UTAMA =====
         function startLoop(items) {
-            // Hentikan pemutaran/timer sebelumnya (kalau ini pergantian playlist saat sedang jalan)
-            if (activeTimer) {
-                clearTimeout(activeTimer);
-                activeTimer = null;
-            }
-            if (currentVideoEl) {
-                currentVideoEl.onended = null;
-                currentVideoEl.onerror = null;
-                currentVideoEl.pause();
-                currentVideoEl = null;
-            }
-
             if (!items || items.length === 0) {
-                document.getElementById('signage-container').innerHTML =
-                    `<p class="text-gray-400 text-xs">Playlist kosong.</p>`;
+                statusEl.textContent = 'Playlist kosong.';
+                statusEl.classList.remove('hidden');
                 return;
             }
-
-            let currentIndex = 0;
-            const container = document.getElementById('signage-container');
-
-            function playNext() {
-                const item = items[currentIndex];
-                container.innerHTML = '';
-
-                if (item.type === 'image') {
-                    currentVideoEl = null;
-                    const img = document.createElement('img');
-                    img.src = item.url; // Browser otomatis mengambil dari cache jika offline
-                    img.className = 'w-full h-full object-contain';
-                    container.appendChild(img);
-
-                    activeTimer = setTimeout(() => {
-                        currentIndex = (currentIndex + 1) % items.length;
-                        playNext();
-                    }, (item.duration || 10) * 1000);
-
-                } else if (item.type === 'video') {
-                    const video = document.createElement('video');
-                    video.src = item.url; // Browser otomatis mengambil dari cache jika offline
-                    video.className = 'w-full h-full object-contain';
-                    video.autoplay = true;
-                    video.muted = false; // Tizen SSSP (signage) umumnya tidak strict soal autoplay+audio seperti Chrome desktop
-                    video.playsInline = true;
-                    container.appendChild(video);
-                    currentVideoEl = video;
-
-                    video.onended = () => {
-                        currentIndex = (currentIndex + 1) % items.length;
-                        playNext();
-                    };
-
-                    video.onerror = () => {
-                        currentIndex = (currentIndex + 1) % items.length;
-                        playNext();
-                    };
-
-                    // Fallback: kalau di device tertentu ternyata tetap ditolak browser,
-                    // coba lagi dengan mute daripada macet diam total
-                    const playPromise = video.play();
-                    if (playPromise !== undefined) {
-                        playPromise.catch((err) => {
-                            console.warn('Autoplay dengan suara gagal, coba ulang dengan mute:', err);
-                            video.muted = true;
-                            video.play().catch(() => {
-                                currentIndex = (currentIndex + 1) % items.length;
-                                playNext();
-                            });
-                        });
-                    }
-                }
-            }
-
+            currentItems = items;
+            currentIndex = 0;
+            isPlaying    = false;
             playNext();
         }
 
-        window.onload = async () => {
-            await registerServiceWorker();
+        // Helper: ambil elemen img/video dari layer tertentu
+        function getLayerEls(layer) {
+            return {
+                layerEl: document.getElementById('layer-' + layer),
+                imgEl: document.getElementById('img-' + layer),
+                videoEl: document.getElementById('video-' + layer),
+            };
+        }
 
-            // Load pertama kali - kalau offline, otomatis fallback ke cache lokal
-            await checkAndSyncPlaylist(true);
+        // Crossfade: layer baru jadi "active" (fade in), layer lama fade out & dibersihkan
+        function crossfadeToLayer(newLayer) {
+            const oldLayer = newLayer === 'a' ? 'b' : 'a';
+            const { layerEl: newEl } = getLayerEls(newLayer);
+            const { layerEl: oldEl, imgEl: oldImg, videoEl: oldVideo } = getLayerEls(oldLayer);
 
-            // Polling berkala - cek apakah ada playlist baru dari dashboard,
-            // tanpa perlu refresh manual/reload halaman
-            setInterval(() => checkAndSyncPlaylist(false), POLL_INTERVAL);
+            statusEl.classList.add('hidden');
+            newEl.classList.add('active');
+            oldEl.classList.remove('active');
+
+            // Bersihin layer lama SETELAH transisi opacity selesai (500ms), biar ga keliatan patah
+            setTimeout(() => {
+                oldVideo.pause();
+                oldVideo.removeAttribute('src');
+                oldVideo.load();
+                oldVideo.classList.add('hidden');
+                oldImg.src = '';
+                oldImg.classList.add('hidden');
+            }, 550);
+
+            activeLayer = newLayer;
+        }
+
+        function playNext() {
+            // Guard: jangan panggil dua kali bersamaan
+            if (isPlaying) return;
+            isPlaying = true;
+
+            if (imageTimerId !== null) {
+                clearTimeout(imageTimerId);
+                imageTimerId = null;
+            }
+
+            // Swap ke playlist baru kalau sudah siap (di batas pergantian item)
+            if (pendingItems) {
+                currentItems = pendingItems;
+                pendingItems = null;
+                currentIndex = 0;
+                syncBadge.textContent = 'Tersinkron (update diterapkan)';
+                console.log('Playlist baru diterapkan.');
+            }
+
+            if (currentIndex >= currentItems.length) currentIndex = 0;
+
+            const item = currentItems[currentIndex];
+            const nextLayer = activeLayer === 'a' ? 'b' : 'a';
+            const { imgEl, videoEl } = getLayerEls(nextLayer);
+
+            if (item.type === 'image') {
+                // Preload gambar di background dulu SEBELUM ditampilkan - ini yang menghilangkan kedip
+                const preloadImg = new Image();
+                preloadImg.onload = () => {
+                    imgEl.src = item.url;
+                    imgEl.classList.remove('hidden');
+                    videoEl.classList.add('hidden');
+                    crossfadeToLayer(nextLayer);
+                    isPlaying = false;
+
+                    const durMs = (item.duration || 10) * 1000;
+                    imageTimerId = setTimeout(() => {
+                        currentIndex = (currentIndex + 1) % currentItems.length;
+                        playNext();
+                    }, durMs);
+                };
+                preloadImg.onerror = () => {
+                    console.warn('Gagal load gambar, skip ke berikutnya');
+                    isPlaying = false;
+                    currentIndex = (currentIndex + 1) % currentItems.length;
+                    playNext();
+                };
+                preloadImg.src = item.url;
+
+            } else {
+                // VIDEO - preload di layer tersembunyi, baru tampil pas beneran siap main
+                videoEl.src = item.url;
+                videoEl.muted = false;
+                videoEl.classList.remove('hidden');
+                imgEl.classList.add('hidden');
+                videoEl.load();
+
+                let started = false;
+                const tryShow = () => {
+                    if (started) return;
+                    started = true;
+                    crossfadeToLayer(nextLayer);
+                    isPlaying = false;
+                };
+
+                videoEl.oncanplay = () => {
+                    videoEl.play().then(tryShow).catch(() => {
+                        // Autoplay dengan suara diblokir - fallback mute
+                        videoEl.muted = true;
+                        videoEl.play().then(tryShow).catch(() => {
+                            isPlaying = false;
+                            currentIndex = (currentIndex + 1) % currentItems.length;
+                            playNext();
+                        });
+                    });
+                };
+
+                videoEl.onended = () => {
+                    currentIndex = (currentIndex + 1) % currentItems.length;
+                    playNext();
+                };
+
+                videoEl.onerror = () => {
+                    console.warn('Gagal load video, skip ke berikutnya');
+                    isPlaying = false;
+                    currentIndex = (currentIndex + 1) % currentItems.length;
+                    playNext();
+                };
+            }
+        }
+
+        // ===== BOOT =====
+        window.onload = function () {
+            registerServiceWorker();
+            initSignagePlayer();
         };
     </script>
 </body>

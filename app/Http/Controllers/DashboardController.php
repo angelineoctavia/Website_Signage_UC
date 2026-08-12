@@ -189,8 +189,15 @@ class DashboardController extends Controller
         ));
     }
 
-    public function exportExcel()
+    public function exportExcel(Request $request)
     {
+        $exportStart = $request->query('export_start');
+        $exportEnd = $request->query('export_end');
+
+        if ($exportStart && $exportEnd && $exportStart > $exportEnd) {
+            return redirect()->back()->withErrors(['export_error' => 'Tanggal "Sampai" tidak boleh lebih awal dari tanggal "Dari"!']);
+        }
+
         $contents = DB::table('contents')
             ->join('users', 'contents.users_id', '=', 'users.users_id')
             ->where('contents.status_del', '0')
@@ -198,20 +205,39 @@ class DashboardController extends Controller
             ->orderBy('contents.content_category')
             ->get();
 
+        $playlistsQuery = Playlist::where('status_del', '0')
+            ->orderBy('playlist_start_date');
+
+        if ($exportStart && $exportEnd) {
+            $playlistsQuery->where(function ($q) use ($exportStart, $exportEnd) {
+                $q->whereDate('playlist_start_date', '<=', $exportEnd)
+                    ->whereDate('playlist_end_date', '>=', $exportStart);
+            });
+        } elseif ($exportStart) {
+            $playlistsQuery->whereDate('playlist_end_date', '>=', $exportStart);
+        } elseif ($exportEnd) {
+            $playlistsQuery->whereDate('playlist_start_date', '<=', $exportEnd);
+        }
+
+        $playlists = $playlistsQuery->get();
+
         $spreadsheet = new Spreadsheet();
-
-        $sheet1 = $spreadsheet->getActiveSheet();
-        $sheet1->setTitle('Daftar Konten');
-
-        $headers = ['No', 'Judul Konten', 'Kategori', 'Tipe File', 'Durasi (detik)', 'Pengunggah'];
-        $sheet1->fromArray($headers, null, 'A1');
-
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F27D00']],
             'alignment' => ['horizontal' => 'center'],
         ];
-        $sheet1->getStyle('A1:F1')->applyFromArray($headerStyle);
+
+        // ===== SHEET 1: Daftar Konten =====
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('Daftar Konten');
+
+        $sheet1->fromArray(
+            ['No', 'Judul Konten', 'Kategori', 'Major / Department', 'Tipe File', 'Durasi (detik)', 'Pengunggah', 'Tanggal Upload'],
+            null,
+            'A1'
+        );
+        $sheet1->getStyle('A1:H1')->applyFromArray($headerStyle);
 
         $row = 2;
         foreach ($contents as $index => $content) {
@@ -219,65 +245,140 @@ class DashboardController extends Controller
                 $index + 1,
                 $content->content_title,
                 $content->content_category,
+                $content->content_major_and_department ?? '-',
                 strtoupper($content->content_type),
                 $content->content_duration,
                 $content->users_name,
+                $content->content_upload_date ?? '-',
             ], null, 'A' . $row);
             $row++;
         }
-
-        foreach (range('A', 'F') as $col) {
+        $sheet1->setAutoFilter('A1:H' . max(1, $row - 1));
+        foreach (range('A', 'H') as $col) {
             $sheet1->getColumnDimension($col)->setAutoSize(true);
         }
-        $sheet1->getStyle('A1:F' . ($row - 1))
+        $sheet1->getStyle('A1:H' . max(1, $row - 1))
             ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
+        // ===== SHEET 2: Ringkasan Kategori & Major/Department =====
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('Ringkasan Kategori');
 
+        // --- Tabel Kategori (Kolom A-B) ---
         $sheet2->fromArray(['Kategori', 'Total Konten'], null, 'A1');
         $sheet2->getStyle('A1:B1')->applyFromArray($headerStyle);
 
         $categorySummary = $contents->groupBy('content_category')->map->count();
-
-        $row = 2;
+        $rowCat = 2;
         foreach ($categorySummary as $category => $total) {
-            $sheet2->fromArray([$category ?: 'Tanpa Kategori', $total], null, 'A' . $row);
-            $row++;
+            $sheet2->fromArray([$category ?: 'Tanpa Kategori', $total], null, 'A' . $rowCat);
+            $rowCat++;
         }
-        $sheet2->fromArray(['Total Keseluruhan', $contents->count()], null, 'A' . $row);
-        $sheet2->getStyle('A' . $row . ':B' . $row)->getFont()->setBold(true);
 
-        foreach (range('A', 'B') as $col) {
+        // Filter hanya sampai baris data terakhir
+        if ($rowCat > 2) {
+            $sheet2->setAutoFilter('A1:B' . ($rowCat - 1));
+        }
+
+        // Jarak 1 baris kosong sebagai pembatas filter
+        $rowCat++;
+        $sheet2->setCellValue('A' . $rowCat, 'Total Keseluruhan');
+        $sheet2->setCellValue('B' . $rowCat, $contents->count());
+        $sheet2->getStyle('A' . $rowCat . ':B' . $rowCat)->getFont()->setBold(true);
+        $sheet2->getStyle('A1:B' . ($rowCat - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet2->getStyle('A' . $rowCat . ':B' . $rowCat)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+
+        // --- Tabel Major / Department (Kolom D-E) ---
+        $sheet2->fromArray(['Major / Department', 'Total Konten'], null, 'D1');
+        $sheet2->getStyle('D1:E1')->applyFromArray($headerStyle);
+
+        $deptSummary = $contents->groupBy('content_major_and_department')->map->count();
+        $rowDept = 2;
+        foreach ($deptSummary as $dept => $total) {
+            $sheet2->fromArray([$dept ?: 'Lainnya', $total], null, 'D' . $rowDept);
+            $rowDept++;
+        }
+
+        // Filter hanya sampai baris data terakhir
+        if ($rowDept > 2) {
+            $sheet2->setAutoFilter('D1:E' . ($rowDept - 1));
+        }
+
+        // Jarak 1 baris kosong sebagai pembatas filter
+        $rowDept++;
+        $sheet2->setCellValue('D' . $rowDept, 'Total Keseluruhan');
+        $sheet2->setCellValue('E' . $rowDept, $contents->count());
+        $sheet2->getStyle('D' . $rowDept . ':E' . $rowDept)->getFont()->setBold(true);
+        $sheet2->getStyle('D1:E' . ($rowDept - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet2->getStyle('D' . $rowDept . ':E' . $rowDept)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+
+        // >>> AUTO-FIT KOLOM OTOMATIS + EXTRA PADDING SUPAYA TIDAK KEPOTONG <<<
+        foreach (range('A', 'E') as $col) {
             $sheet2->getColumnDimension($col)->setAutoSize(true);
         }
-        $sheet2->getStyle('A1:B' . $row)
-            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
+        // Tambahan sedikit lebar ekstra khusus untuk kolom A, B, D, dan E (karena ada header filter & teks panjang)
+        $sheet2->getColumnDimension('A')->setWidth($sheet2->getColumnDimension('A')->getWidth() + 4);
+        $sheet2->getColumnDimension('B')->setWidth($sheet2->getColumnDimension('B')->getWidth() + 4);
+        $sheet2->getColumnDimension('D')->setWidth($sheet2->getColumnDimension('D')->getWidth() + 6); // Extra space untuk icon filter
+        $sheet2->getColumnDimension('E')->setWidth($sheet2->getColumnDimension('E')->getWidth() + 4);
+
+        // ===== SHEET 3: Ringkasan Pengunggah =====
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('Ringkasan Pengunggah');
-
         $sheet3->fromArray(['Pengunggah', 'Total Upload'], null, 'A1');
         $sheet3->getStyle('A1:B1')->applyFromArray($headerStyle);
 
+        $rowUploader = 2;
         $uploaderSummary = $contents->groupBy('users_name')->map->count();
-
-        $row = 2;
         foreach ($uploaderSummary as $uploader => $total) {
-            $sheet3->fromArray([$uploader, $total], null, 'A' . $row);
-            $row++;
+            $sheet3->fromArray([$uploader, $total], null, 'A' . $rowUploader);
+            $rowUploader++;
         }
-
+        $sheet3->setAutoFilter('A1:B' . max(1, $rowUploader - 1));
         foreach (range('A', 'B') as $col) {
             $sheet3->getColumnDimension($col)->setAutoSize(true);
         }
-        $sheet3->getStyle('A1:B' . ($row - 1))
-            ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheet3->getStyle('A1:B' . max(1, $rowUploader - 1))->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        // ===== SHEET 4: Jadwal Playlist =====
+        $sheet4 = $spreadsheet->createSheet();
+        $sheet4->setTitle('Jadwal Playlist');
+        $periodLabel = ($exportStart || $exportEnd)
+            ? 'Periode: ' . ($exportStart ?? 'awal') . ' s/d ' . ($exportEnd ?? 'akhir')
+            : 'Semua Periode';
+        $sheet4->setCellValue('A1', 'Jadwal Playlist — ' . $periodLabel);
+        $sheet4->getStyle('A1')->getFont()->setBold(true)->setSize(11);
+        $sheet4->mergeCells('A1:C1');
+
+        $sheet4->fromArray(['Playlist ID', 'Start Date', 'End Date'], null, 'A2');
+        $sheet4->getStyle('A2:C2')->applyFromArray($headerStyle);
+
+        $rowPlaylist = 3;
+        foreach ($playlists as $playlist) {
+            $sheet4->fromArray([
+                'Playlist ' . $playlist->playlist_id,
+                date('Y-m-d', strtotime($playlist->playlist_start_date)),
+                date('Y-m-d', strtotime($playlist->playlist_end_date)),
+            ], null, 'A' . $rowPlaylist);
+            $rowPlaylist++;
+        }
+        $sheet4->setAutoFilter('A2:C' . max(2, $rowPlaylist - 1));
+        foreach (range('A', 'C') as $col) {
+            $sheet4->getColumnDimension($col)->setAutoSize(true);
+        }
+        if ($rowPlaylist > 3) {
+            $sheet4->getStyle('A2:C' . ($rowPlaylist - 1))
+                ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        }
 
         $spreadsheet->setActiveSheetIndex(0);
-
-        $filename = 'Laporan_Konten_Signage_' . now()->format('Y-m-d_His') . '.xlsx';
-
+        $fileSuffix = ($exportStart || $exportEnd)
+            ? ($exportStart ?? 'awal') . '_sd_' . ($exportEnd ?? 'akhir')
+            : now()->format('Y-m-d_His');
+        $filename = 'Laporan_Signage_' . $fileSuffix . '.xlsx';
         $writer = new Xlsx($spreadsheet);
 
         return response()->streamDownload(function () use ($writer) {

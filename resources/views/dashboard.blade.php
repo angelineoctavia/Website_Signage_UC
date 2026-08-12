@@ -80,7 +80,7 @@
         @endif
 
         @if ($errors->any())
-            <div
+            <div id="error-alert"
                 class="bg-red-50 border border-red-200 text-red-800 px-5 py-4 rounded-xl text-xs flex items-center space-x-3 shadow-sm">
                 <i class="fa-solid fa-triangle-exclamation text-red-500 text-base"></i>
                 <div>{{ $errors->first() }}</div>
@@ -370,7 +370,7 @@
         </div>
 
         <!-- MODAL DETAIL PLAYLIST (di luar grid, standalone) -->
-        <div id="playlistModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div id="playlistModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-80 p-4">
             <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
                 <button onclick="closePlaylistModal()"
                     class="absolute top-5 right-5 text-gray-400 hover:text-gray-600 text-base font-bold focus:outline-none">
@@ -553,17 +553,31 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+                    <form id="exportForm" method="GET" action="{{ route('dashboard.export') }}"
+                        class="flex flex-col sm:flex-row items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 gap-4">
                         <div>
                             <p class="text-xs font-semibold text-uc-dark">Unduh Laporan Lengkap (.xlsx)</p>
-                            <p class="text-[11px] text-gray-400">File berisi 3 sheet sesuai deskripsi di atas.</p>
+                            <p class="text-[11px] text-gray-400">Filter berdasarkan rentang tanggal playlist (opsional).
+                            </p>
                         </div>
-                        <a href="{{ route('dashboard.export') }}"
-                            class="inline-flex items-center space-x-1.5 bg-uc-blue hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors">
-                            <i class="fa-solid fa-download text-[11px]"></i>
-                            <span>Download</span>
-                        </a>
-                    </div>
+                        <div class="flex items-center gap-3 flex-wrap justify-end">
+                            <div class="flex items-center gap-2">
+                                <label class="text-[11px] font-semibold text-uc-gray whitespace-nowrap">Start Date</label>
+                                <input type="date" id="export_start" name="export_start"
+                                    class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-uc-orange">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-[11px] font-semibold text-uc-gray whitespace-nowrap">End Date</label>
+                                <input type="date" id="export_end" name="export_end"
+                                    class="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-uc-orange">
+                            </div>
+                            <button type="button" onclick="submitExport()"
+                                class="inline-flex items-center space-x-1.5 bg-uc-blue hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-semibold transition-colors">
+                                <i class="fa-solid fa-download text-[11px]"></i>
+                                <span>Download</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -713,6 +727,39 @@
                     };
                 }
             }
+
+            function submitExport() {
+                const startVal = document.getElementById('export_start').value;
+                const endVal = document.getElementById('export_end').value;
+
+                // Validasi jika tanggal 'Sampai' lebih kecil dari 'Dari'
+                if (startVal && endVal && endVal < startVal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops...',
+                        text: 'Tanggal "Sampai" tidak boleh lebih awal dari tanggal "Dari"!',
+                        width: '380px',
+                        customClass: {
+                            popup: 'swal-custom-popup',
+                            title: 'swal-custom-title',
+                            htmlContainer: 'swal-custom-html',
+                        }
+                    }).then(() => {
+                        // Mengosongkan input date setelah user klik OK pada alert
+                        document.getElementById('export_start').value = '';
+                        document.getElementById('export_end').value = '';
+                    });
+                    return;
+                }
+
+                const form = document.getElementById('exportForm');
+                form.submit();
+
+                setTimeout(() => {
+                    document.getElementById('export_start').value = '';
+                    document.getElementById('export_end').value = '';
+                }, 300);
+            }
         </script>
 
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -759,9 +806,7 @@
             }
 
             function triggerDeletePlaylist(id) {
-                if (confirm('Apakah kamu yakin ingin menghapus playlist ini?')) {
-                    window.location.href = '/playlist/' + id + '/delete';
-                }
+                window.location.href = '/playlist/' + id + '/delete';
             }
 
             document.addEventListener('DOMContentLoaded', function() {
@@ -793,5 +838,29 @@
                     noResultRow.classList.toggle('hidden', visibleCount > 0 || rows.length === 0);
                 }
             }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Handle Success Alert
+                const successAlert = document.getElementById('success-alert');
+                if (successAlert) {
+                    setTimeout(function() {
+                        successAlert.style.opacity = '0';
+                        setTimeout(function() {
+                            successAlert.remove();
+                        }, 500);
+                    }, 5000);
+                }
+
+                // Handle Error Alert (Opsional: ikut hilang otomatis setelah 6 detik jika diinginkan)
+                const errorAlert = document.getElementById('error-alert');
+                if (errorAlert) {
+                    setTimeout(function() {
+                        errorAlert.style.opacity = '0';
+                        setTimeout(function() {
+                            errorAlert.remove();
+                        }, 500);
+                    }, 6000);
+                }
+            });
         </script>
     @endsection

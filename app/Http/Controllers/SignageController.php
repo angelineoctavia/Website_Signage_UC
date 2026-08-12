@@ -20,7 +20,6 @@ class SignageController extends Controller
         try {
             $today = now()->format('Y-m-d');
 
-            // Otomatis cari playlist yang tanggal hari ini masuk ke rentang start-end nya
             $activePlaylist = Playlist::where('status_del', '0')
                 ->whereDate('playlist_start_date', '<=', $today)
                 ->whereDate('playlist_end_date', '>=', $today)
@@ -44,13 +43,11 @@ class SignageController extends Controller
             $items = [];
             foreach ($playlistDetails as $detail) {
                 $filePath = $detail->content_file_path_url ?? '';
-
                 if (empty($filePath) || $filePath === 'storage' || $filePath === '/storage') {
                     continue;
                 }
 
                 $fileUrl = Content::resolveFileUrl($filePath, $detail->content_type ?? null);
-
                 $contentType = strtolower($detail->content_type ?? '');
                 $isImage = in_array($contentType, ['image', 'img', 'jpg', 'jpeg', 'png']);
 
@@ -62,8 +59,12 @@ class SignageController extends Controller
                 ];
             }
 
+            // Version sekarang include hash dari content_ids — berubah setiap kali isi playlist diupdate
+            $contentHash = md5(implode('-', array_column($items, 'id')));
+            $version = 'p' . $activePlaylist->playlist_id . '-' . $today . '-' . substr($contentHash, 0, 8);
+
             return response()->json([
-                'version' => 'p' . $activePlaylist->playlist_id . '-' . $today,
+                'version' => $version,
                 'playlist_id' => $activePlaylist->playlist_id,
                 'device_target' => 'Samsung Signage 24 Inch',
                 'items' => $items

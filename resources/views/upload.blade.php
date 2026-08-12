@@ -127,24 +127,92 @@
                                 required>
                         </div>
 
-                        <div>
+                        <!-- Category -->
+                        <div class="mb-4 relative">
                             <label class="block text-xs font-semibold text-uc-dark mb-1.5">Category</label>
-                            <select name="category"
-                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors cursor-pointer"
-                                required>
-                                <option value="" disabled selected>Pilih Kategori...</option>
-                                <option value="Event">Event</option>
-                                <option value="Regular Content">Regular Content</option>
-                                <option value="Promotion">Promotion</option>
-                                <option value="Achievement">Achievement</option>
-                                <option value="Business & Community">Business & Community</option>
-                            </select>
+                            <input type="hidden" name="category" id="selected-cat-value" required>
+
+                            <button type="button" onclick="toggleCatDropdown(event)" id="cat-dropdown-btn"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-left text-gray-400 flex items-center justify-between focus:outline-none focus:border-uc-orange transition-colors">
+                                <span id="cat-dropdown-text">Pilih Kategori...</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-gray-500 transition-transform duration-200"
+                                    id="cat-chevron"></i>
+                            </button>
+
+                            <div id="cat-dropdown-list"
+                                class="hidden absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                                @foreach (['Event', 'Regular Content', 'Promotion', 'Achievement', 'Business & Community'] as $cat)
+                                    <div onclick="selectCat('{{ $cat }}')"
+                                        class="px-3 py-2 text-xs text-uc-dark hover:bg-orange-50 hover:text-uc-orange rounded-lg cursor-pointer transition-colors">
+                                        {{ $cat }}
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
+
+                        <!-- Jurusan & Departemen (Searchable) -->
+                        <div class="mb-4 relative">
+                            <label class="block text-xs font-semibold text-uc-dark mb-1.5">Jurusan & Departemen</label>
+                            <input type="hidden" name="content_major_and_department" id="selected-dept-value" required>
+
+                            <!-- Tombol Utama -->
+                            <button type="button" onclick="toggleDeptDropdown(event)" id="dept-dropdown-btn"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-left text-gray-400 flex items-center justify-between focus:outline-none focus:border-uc-orange transition-colors">
+                                <span id="dept-dropdown-text">Pilih Jurusan / Departemen</span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-gray-500 transition-transform duration-200"
+                                    id="dept-chevron"></i>
+                            </button>
+
+                            <!-- Kotak Menu Pilihan + Search Bar -->
+                            <div id="dept-dropdown-list"
+                                class="hidden absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 p-2">
+
+                                <!-- Input Search -->
+                                <div class="mb-2 relative">
+                                    <i
+                                        class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                                    <input type="text" id="dept-search-input"
+                                        placeholder="Cari jurusan atau departemen..." oninput="filterDeptList(this.value)"
+                                        class="w-full bg-gray-50 border border-gray-200 rounded-lg pl-8 pr-3 py-2 text-xs text-uc-dark focus:outline-none focus:border-uc-orange transition-colors"
+                                        onclick="event.stopPropagation()">
+                                </div>
+
+                                <!-- Daftar List Pilihan -->
+                                <div class="max-h-44 overflow-y-auto custom-scrollbar space-y-0.5"
+                                    id="dept-items-container">
+                                    <div
+                                        class="dept-category-label px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 rounded-lg mt-1">
+                                        Department UC</div>
+                                    @foreach (['FAMBUS', 'BAA', 'MNA-UP', 'MNA-GP', 'TLiC', 'LPPM', 'HUM', 'CaGE', 'SA', 'IPC', 'ICE', 'ARD', 'LIB', 'HCM', 'SW', 'YUCCA', 'OUTING', 'SC', 'SRB', 'MD', 'ENT', 'UC Venture', 'LCC', 'PM', 'FA', 'ICT', 'QA'] as $dept)
+                                        <div onclick="selectDept('{{ $dept }}')"
+                                            data-name="{{ strtolower($dept) }}"
+                                            class="dept-item px-3 py-2 text-xs text-uc-dark hover:bg-orange-50 hover:text-uc-orange rounded-lg cursor-pointer transition-colors">
+                                            {{ $dept }}
+                                        </div>
+                                    @endforeach
+
+                                    <div
+                                        class="dept-category-label px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 rounded-lg mt-2">
+                                        Jurusan</div>
+                                    @foreach (['IBM-RC', 'IBM-IC', 'ACC', 'MEM', 'VCD', 'INA', 'FDB', 'HTEB', 'CBZ', 'FTP', 'IMT', 'ISB', 'MED-RC', 'MED-IC', 'DEM', 'PSY', 'FIKOM'] as $major)
+                                        <div onclick="selectDept('{{ $major }}')"
+                                            data-name="{{ strtolower($major) }}"
+                                            class="dept-item px-3 py-2 text-xs text-uc-dark hover:bg-orange-50 hover:text-uc-orange rounded-lg cursor-pointer transition-colors">
+                                            {{ $major }}
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Input Tanggal Upload Otomatis (Hidden) -->
+                        <input type="hidden" name="content_upload_date" value="{{ date('Y-m-d') }}">
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-uc-dark mb-1.5">Media Type</label>
-                                <input type="text" name="media_type" id="media-type-display" value="Auto-detect" readonly
+                                <input type="text" name="media_type" id="media-type-display" value="Auto-detect"
+                                    readonly
                                     class="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-500 cursor-not-allowed">
                             </div>
                             <div>
@@ -259,5 +327,111 @@
 
             return true;
         }
+
+        // --- Kategori Dropdown Logic ---
+        function toggleCatDropdown(event) {
+            event.stopPropagation();
+            const list = document.getElementById('cat-dropdown-list');
+            const chevron = document.getElementById('cat-chevron');
+
+            // Tutup dropdown departemen jika sedang terbuka
+            document.getElementById('dept-dropdown-list').classList.add('hidden');
+            document.getElementById('dept-chevron').classList.remove('rotate-180');
+
+            list.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        }
+
+        function selectCat(value) {
+            document.getElementById('selected-cat-value').value = value;
+            const textEl = document.getElementById('cat-dropdown-text');
+            textEl.innerText = value;
+            textEl.classList.remove('text-gray-400');
+            textEl.classList.add('text-uc-dark');
+
+            document.getElementById('cat-dropdown-list').classList.add('hidden');
+            document.getElementById('cat-chevron').classList.remove('rotate-180');
+        }
+
+        // --- Jurusan & Departemen Search & Select Logic ---
+        function toggleDeptDropdown(event) {
+            event.stopPropagation();
+            const list = document.getElementById('dept-dropdown-list');
+            const chevron = document.getElementById('dept-chevron');
+
+            // Tutup dropdown kategori jika sedang terbuka
+            document.getElementById('cat-dropdown-list').classList.add('hidden');
+            document.getElementById('cat-chevron').classList.remove('rotate-180');
+
+            list.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+
+            // Jika dropdown terbuka, langsung fokus ke kolom input search
+            if (!list.classList.contains('hidden')) {
+                setTimeout(() => {
+                    document.getElementById('dept-search-input').focus();
+                }, 50);
+            }
+        }
+
+        function selectDept(value) {
+            document.getElementById('selected-dept-value').value = value;
+            const textEl = document.getElementById('dept-dropdown-text');
+            textEl.innerText = value;
+            textEl.classList.remove('text-gray-400');
+            textEl.classList.add('text-uc-dark');
+
+            document.getElementById('dept-dropdown-list').classList.add('hidden');
+            document.getElementById('dept-chevron').classList.remove('rotate-180');
+
+            // Reset search input saat dipilih/ditutup
+            document.getElementById('dept-search-input').value = '';
+            filterDeptList('');
+        }
+
+        function filterDeptList(keyword) {
+            const filter = keyword.toLowerCase().trim();
+            const items = document.querySelectorAll('.dept-item');
+            const labels = document.querySelectorAll('.dept-category-label');
+
+            items.forEach(item => {
+                const name = item.getAttribute('data-name');
+                if (name.includes(filter)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Sembunyikan label kategori jika semua item di dalamnya tersembunyi (opsional agar lebih bersih)
+            labels.forEach(label => {
+                let nextEl = label.nextElementSibling;
+                let hasVisibleChild = false;
+                while (nextEl && !nextEl.classList.contains('dept-category-label')) {
+                    if (nextEl.style.display !== 'none') {
+                        hasVisibleChild = true;
+                        break;
+                    }
+                    nextEl = nextEl.nextElementSibling;
+                }
+                label.style.display = hasVisibleChild ? 'block' : 'none';
+            });
+        }
+
+        // Menutup dropdown jika user klik di luar kotak utama
+        document.addEventListener('click', function(e) {
+            const catContainer = document.getElementById('cat-dropdown-btn').closest('.relative');
+            const deptContainer = document.getElementById('dept-dropdown-btn').closest('.relative');
+
+            if (catContainer && !catContainer.contains(e.target)) {
+                document.getElementById('cat-dropdown-list').classList.add('hidden');
+                document.getElementById('cat-chevron').classList.remove('rotate-180');
+            }
+
+            if (deptContainer && !deptContainer.contains(e.target)) {
+                document.getElementById('dept-dropdown-list').classList.add('hidden');
+                document.getElementById('dept-chevron').classList.remove('rotate-180');
+            }
+        });
     </script>
 @endsection

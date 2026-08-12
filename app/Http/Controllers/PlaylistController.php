@@ -79,7 +79,7 @@ class PlaylistController extends Controller
 
         $playlist = Playlist::create([
             'playlist_start_date' => $request->playlist_start_date,
-            'playlist_end_date'   => $request->playlist_end_date,
+            'playlist_end_date'   => $request->playlist_end_date . ' 23:59:59',
             'playlist_duration' => $totalDuration,
             'status_del' => '0'
         ]);
@@ -104,7 +104,7 @@ class PlaylistController extends Controller
 
         Playlist::where('playlist_id', $id)->update([
             'playlist_start_date' => $request->playlist_start_date,
-            'playlist_end_date'   => $request->playlist_end_date,
+            'playlist_end_date'   => $request->playlist_end_date . ' 23:59:59',
             'playlist_duration' => $totalDuration,
         ]);
 
@@ -188,5 +188,52 @@ class PlaylistController extends Controller
             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
             return $content->content_duration ?? ($isImage ? 5 : 10);
         });
+    }
+
+    public function displaySignage()
+    {
+        $now = now();
+
+        // Cari playlist aktif hari ini
+        $activePlaylist = Playlist::with(['details.content'])
+            ->where('status_del', '0')
+            ->whereDate('playlist_start_date', '<=', $now)
+            ->whereDate('playlist_end_date', '>=', $now)
+            ->first();
+
+        return view('signage-display', [
+            'activePlaylist' => $activePlaylist
+        ]);
+    }
+
+    public function getActivePlaylistJson()
+    {
+        $now = now();
+        $activePlaylist = Playlist::with(['details.content'])
+            ->where('status_del', '0')
+            ->whereDate('playlist_start_date', '<=', $now)
+            ->whereDate('playlist_end_date', '>=', $now)
+            ->first();
+
+        if (!$activePlaylist) {
+            return response()->json(['media' => []]);
+        }
+
+        $mediaList = $activePlaylist->details->sortBy('playlist_order')->map(function ($detail) {
+            $content = $detail->content;
+            $extension = strtolower($content->content_type ?? '');
+            $isImg = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+
+            // Gunakan resolveFileUrl agar konsisten dengan halaman dashboard/preview
+            $fullUrl = Content::resolveFileUrl($content->content_file_path_url ?? '', $content->content_type ?? null);
+
+            return [
+                'url' => $fullUrl,
+                'type' => $isImg ? 'image' : 'video',
+                'duration' => $content->content_duration ?? ($isImg ? 5 : 10)
+            ];
+        })->values();
+
+        return response()->json(['media' => $mediaList]);
     }
 }

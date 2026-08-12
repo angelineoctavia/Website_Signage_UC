@@ -22,6 +22,7 @@ class UploadController extends Controller
             'content_title'  => 'required|string|max:100',
             'category'       => 'required|string',
             'duration'       => 'required|string',
+            'content_major_and_department' => 'required|string',
             'file'           => ['required', 'file', 'max:51200', function ($attribute, $value, $fail) {
                 $allowed = ['mp4', 'mov', 'avi', 'jpg', 'jpeg', 'png'];
                 $ext = strtolower($value->getClientOriginalExtension());
@@ -42,12 +43,16 @@ class UploadController extends Controller
 
         $file = $request->file('file');
         $contentType = $file->getClientOriginalExtension();
-       
-        $tanggal = date('Y-m-d'); // Mengambil tanggal hari ini (format: 03-08-2026)
-        $cleanTitle = Str::slug($request->input('content_title'), '_'); // Mengubah spasi jadi underscore & bersihkan karakter khusus
+
+        $tanggal = date('Y-m-d');
+        $cleanTitle = Str::slug($request->input('content_title'), '_');
         $filename = "{$tanggal}_{$cleanTitle}.{$contentType}";
 
-        // Upload ke Google Drive
+        // --- 1. SIMPAN FILE SECARA FISIK KE LOCAL STORAGE (UNTUK TV) ---
+        // File akan masuk ke folder storage/app/public/uploads/
+        $localPath = $file->storeAs('uploads', $filename, 'public');
+
+        // --- 2. UPLOAD KE GOOGLE DRIVE (TETAP JALAN SEPERTI BIASA) ---
         try {
             $uploadedFile = GoogleDriveController::uploadFile(
                 $file->getRealPath(),
@@ -62,18 +67,22 @@ class UploadController extends Controller
                 ->withInput();
         }
 
-        // Simpan ke database — sesuai kolom tabel contents (tidak ada created_at/updated_at)
+        // --- 3. SIMPAN KE DATABASE ---
+        // PERHATIAN: Kolom content_file_path_url kita arahkan ke path lokal (uploads/...) 
+        // agar TV bisa membacanya via asset('storage/...'), bukan pakai ID Google Drive.
         DB::table('contents')->insert([
-            'users_id'              => Auth::id() ?? 1,
-            'content_title'         => $request->input('content_title'),
-            'content_file_path_url' => $uploadedFile['file_id'],
-            'content_category'      => $request->input('category'),
-            'content_type'          => $contentType,
-            'content_duration'      => $contentDataDuration,
-            'content_status'        => true,
-            'status_del'            => '0',
+            'users_id'                     => Auth::id() ?? 1,
+            'content_title'                => $request->input('content_title'),
+            'content_file_path_url'        => $localPath, // <-- Path lokal (cth: uploads/2026-08-12_judul.mp4)
+            'content_category'             => $request->input('category'),
+            'content_type'                 => $contentType,
+            'content_duration'             => $contentDataDuration,
+            'content_upload_date'          => date('Y-m-d'),
+            'content_major_and_department' => $request->input('content_major_and_department'),
+            'content_status'               => true,
+            'status_del'                   => '0',
         ]);
 
-        return redirect()->route('upload.index')->with('success', 'Konten berhasil di-upload ke Google Drive & disimpan ke database!');
+        return redirect()->route('upload.index')->with('success', 'Konten berhasil disimpan untuk TV & di-backup ke Google Drive!');
     }
 }
