@@ -362,20 +362,25 @@
         .sortable-drag {
             opacity: 0 !important;
         }
+
         .sortable-ghost {
             opacity: 0.3;
             background-color: #fff7ed !important;
             border: 2px dashed #f97316 !important;
         }
+
         .content-item {
             cursor: default;
         }
+
         .drag-handle {
             cursor: grab !important;
         }
+
         .drag-handle:active {
             cursor: grabbing !important;
         }
+
         /* Font & tampilan umum kalender */
         .flatpickr-calendar {
             font-family: inherit !important;
@@ -384,6 +389,7 @@
             width: auto !important;
             padding: 12px !important;
         }
+
         .flatpickr-current-month {
             font-size: 14px !important;
             font-weight: 700 !important;
@@ -393,11 +399,12 @@
             justify-content: center !important;
             gap: 4px !important;
         }
+
         .flatpickr-current-month input.cur-year,
         .flatpickr-current-month .flatpickr-monthDropdown-months {
             font-weight: 700 !important;
         }
-        
+
         .flatpickr-calendar .flatpickr-monthDropdown-months {
             max-height: 100px !important;
             overflow-y: auto !important;
@@ -408,13 +415,16 @@
             cursor: pointer;
             padding-right: 12px !important;
         }
+
         .flatpickr-current-month input.cur-year {
             display: none !important;
         }
+
         .flatpickr-current-month .numInputWrapper span.arrowUp,
         .flatpickr-current-month .numInputWrapper span.arrowDown {
             display: none !important;
         }
+
         .flatpickr-current-month .numInputWrapper {
             width: 60px !important;
             padding: 0 !important;
@@ -427,6 +437,7 @@
             display: inline-flex;
             align-items: center;
         }
+
         .flatpickr-month-wrapper::after,
         .flatpickr-year-wrapper::after {
             content: "v";
@@ -438,6 +449,7 @@
             pointer-events: none;
             transform: scaleY(0.7);
         }
+
         .flatpickr-current-month .flatpickr-monthDropdown-months {
             padding-right: 16px !important;
         }
@@ -455,24 +467,29 @@
             appearance: none !important;
             max-height: 200px;
         }
+
         .flatpickr-year-select:focus {
             outline: none !important;
         }
+
         /* Header nama hari (Sun/Mon/Tue/dst) */
         .flatpickr-weekdays {
             background: transparent !important;
             text-align: center !important;
         }
+
         span.flatpickr-weekday {
             font-size: 11px !important;
             font-weight: 600 !important;
             color: #6B7280 !important;
             text-transform: none !important;
         }
+
         /* PERBAIKAN UTAMA: Ubah container hari menjadi CSS Grid agar kotaknya terpisah rapi (tidak nempel) */
         .flatpickr-days {
             width: 315px !important;
         }
+
         .dayContainer {
             display: grid !important;
             grid-template-columns: repeat(7, 1fr) !important;
@@ -484,6 +501,7 @@
             /* Jarak antar kotak tanggal */
             padding: 4px 0 !important;
         }
+
         /* Styling kotak tanggal individual */
         .flatpickr-day {
             width: 38px !important;
@@ -499,30 +517,36 @@
             align-items: center !important;
             justify-content: center !important;
         }
+
         .flatpickr-day.flatpickr-disabled,
         .flatpickr-day.flatpickr-disabled:hover {
             cursor: default !important;
         }
+
         /* Status Tanggal: Booked (Merah Muda) */
         .flatpickr-day.booked-date {
             background: #fee2e2 !important;
             color: #dc2626 !important;
             cursor: default !important;
         }
+
         /* Status Tanggal: Available (Hijau Muda) */
         .flatpickr-day.available-date {
             background: #d1fae5 !important;
             color: #059669 !important;
         }
+
         .flatpickr-day.available-date:hover {
             background: #a7f3d0 !important;
         }
+
         /* Status Tanggal: Past / Lewat */
         .flatpickr-day.past-date {
             background: #f3f4f6 !important;
             color: #9ca3af !important;
             cursor: default !important;
         }
+
         /* Tanggal yang dipilih (Selected) */
         .flatpickr-day.selected.available-date,
         .flatpickr-day.selected {
@@ -530,6 +554,7 @@
             color: #fff !important;
             box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #F27D00 !important;
         }
+
         /* Tanggal hari ini (Today) */
         .flatpickr-day.today:not(.selected) {
             border: 2px solid #F27D00 !important;
@@ -559,12 +584,15 @@
                 playCurrentQueueItem();
             }
         });
+
         function openContentModal() {
             document.getElementById('content-modal').classList.remove('hidden');
         }
+
         function closeContentModal() {
             document.getElementById('content-modal').classList.add('hidden');
         }
+
         function addContentToPlaylist(id, title, url, isImage, duration) {
             const existingInputs = document.querySelectorAll('input[name="contents[]"]');
             for (let input of existingInputs) {
@@ -603,6 +631,7 @@
                 playCurrentQueueItem();
             }
         }
+
         function removeContentItem(button, event) {
             event.stopPropagation();
             const item = button.closest('.content-item');
@@ -618,6 +647,7 @@
                 }
             }
         }
+
         function rebuildPlaylistQueue() {
             playlistQueue = [];
             let totalSeconds = 0;
@@ -634,12 +664,14 @@
             });
             updateTotalDurationDisplay(totalSeconds);
         }
+
         function updateTotalDurationDisplay(totalSeconds) {
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = totalSeconds % 60;
             const formatted = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
             document.getElementById('total-duration-input').value = formatted;
         }
+
         function playCurrentQueueItem() {
             const titleEl = document.getElementById('preview-title');
             const videoEl = document.getElementById('preview-video');
@@ -679,6 +711,7 @@
                 };
             }
         }
+
         function resetPreviewPlayer() {
             if (imageTimer) clearTimeout(imageTimer);
             const videoEl = document.getElementById('preview-video');
@@ -694,11 +727,13 @@
             titleEl.textContent = "Pilih konten untuk preview"; // Teks disesuaikan
             updateTotalDurationDisplay(0);
         }
+
         function updateContentCount() {
             const listContainer = document.getElementById('content-list');
             const countLabel = document.getElementById('content-count');
             countLabel.textContent = listContainer.querySelectorAll('.content-item').length;
         }
+
         function closeAlert() {
             const alertBox = document.getElementById('success-alert');
             if (alertBox) {
@@ -706,12 +741,14 @@
                 setTimeout(() => alertBox.remove(), 500);
             }
         }
+
         function showDuplicateAlert() {
             const alertBox = document.getElementById('duplicate-alert');
             alertBox.classList.remove('hidden');
             alertBox.style.opacity = '1';
             setTimeout(() => closeDuplicateAlert(), 5000);
         }
+
         function closeDuplicateAlert() {
             const alertBox = document.getElementById('duplicate-alert');
             if (alertBox) {
@@ -719,6 +756,7 @@
                 setTimeout(() => alertBox.classList.add('hidden'), 500);
             }
         }
+
         function filterContentItems() {
             let input = document.getElementById('contentSearchInput').value.toLowerCase();
             let sections = document.querySelectorAll('.category-section');
@@ -745,6 +783,7 @@
     </script>
     <script>
         const bookedDates = @json($bookedDates ?? []);
+
         function isPastDate(date) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -771,6 +810,7 @@
                 return isPastDate(date) || bookedDates.includes(flatpickr.formatDate(date, "Y-m-d"));
             }
         ];
+
         function checkDateOverlap() {
             const start = document.getElementById('playlist_start_date').value;
             const end = document.getElementById('playlist_end_date').value;
@@ -790,7 +830,7 @@
             warning.classList.toggle('hidden', !overlap);
             if (submitBtn) submitBtn.disabled = overlap;
         }
-        
+
         // Bungkus dropdown bulan bawaan Flatpickr agar ada pembungkus dan panah v
         function setupMonthDropdown(selectedDates, dateStr, instance) {
             const monthNav = instance.monthNav;
@@ -811,7 +851,7 @@
             const thisYear = new Date().getFullYear();
             const startYear = thisYear - 10;
             const endYear = thisYear + 50;
-            
+
             const wrapper = document.createElement('div');
             wrapper.className = 'flatpickr-year-wrapper';
 
@@ -827,11 +867,12 @@
             select.addEventListener('change', function() {
                 instance.changeYear(parseInt(this.value));
             });
-            
+
             wrapper.appendChild(select);
             yearInput.insertAdjacentElement('afterend', wrapper);
             yearInput.dataset.customized = 'true';
         }
+
         function syncYearDropdown(selectedDates, dateStr, instance) {
             const sel = instance.calendarContainer.querySelector('.flatpickr-year-select');
             if (sel) sel.value = instance.currentYear;
@@ -858,14 +899,12 @@
             onYearChange: syncYearDropdown,
             onChange: function(selectedDates, dateStr) {
                 if (selectedDates.length > 0) {
-                    // Set minDate untuk End Date minimal H+1 dari Start Date yang dipilih
-                    const nextDay = new Date(selectedDates[0]);
-                    nextDay.setDate(nextDay.getDate() + 1);
-                    endDatePicker.set('minDate', nextDay);
-                    
-                    // Jika End Date yang sudah terlanjur dipilih lebih kecil atau sama dengan Start Date yang baru, reset End Date-nya
+                    // Set minDate untuk End Date minimal SAMA DENGAN Start Date (boleh playlist 1 hari)
+                    endDatePicker.set('minDate', selectedDates[0]);
+
+                    // Reset End Date HANYA kalau dia jadi LEBIH KECIL dari Start Date baru (bukan lagi kalau sama persis)
                     const currentEndDate = endDatePicker.selectedDates[0];
-                    if (currentEndDate && currentEndDate <= selectedDates[0]) {
+                    if (currentEndDate && currentEndDate < selectedDates[0]) {
                         endDatePicker.clear();
                     }
                 }
@@ -875,7 +914,6 @@
         // Kalau load pertama kali dalam mode edit, set minDate End Date secara otomatis jika Start Date sudah ada
         @if ($editMode && $playlist->playlist_start_date)
             const initialStart = new Date("{{ \Carbon\Carbon::parse($playlist->playlist_start_date)->format('Y-m-d') }}");
-            initialStart.setDate(initialStart.getDate() + 1);
             endDatePicker.set('minDate', initialStart);
         @endif
 

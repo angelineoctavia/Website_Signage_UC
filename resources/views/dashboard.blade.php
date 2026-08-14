@@ -370,7 +370,7 @@
         </div>
 
         <!-- MODAL DETAIL PLAYLIST (di luar grid, standalone) -->
-        <div id="playlistModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-80 p-4">
+        <div id="playlistModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-40 p-4">
             <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
                 <button onclick="closePlaylistModal()"
                     class="absolute top-5 right-5 text-gray-400 hover:text-gray-600 text-base font-bold focus:outline-none">

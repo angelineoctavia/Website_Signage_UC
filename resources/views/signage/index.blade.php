@@ -74,11 +74,55 @@
             padding: 4px 10px;
             border-radius: 8px;
         }
+
+        /* ===== Debug overlay ===== */
+        #debug-overlay {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 100;
+            font-family: monospace;
+            font-size: 10px;
+            line-height: 1.5;
+            color: #0f0;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 6px 10px;
+            border-radius: 6px;
+            white-space: pre;
+            pointer-events: none;
+            max-width: 90%;
+            word-break: break-all;
+        }
+
+        /* ===== Double-buffer layer buat crossfade, biar ga ada momen "kosong" pas ganti konten ===== */
+        .signage-layer {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1;
+        }
+
+        .signage-layer.active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        .signage-layer img,
+        .signage-layer video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
     </style>
 </head>
 
 <body class="flex items-center justify-center h-screen bg-neutral-950">
     <div id="tv-frame">
+
+        <div id="debug-overlay">Menyiapkan diagnosa...</div>
+
         <div id="floating-header">
             <span id="sync-badge">Standby</span>
             <form action="{{ route('logout') }}" method="GET">
@@ -94,29 +138,172 @@
                 </button>
             </form>
         </div>
-        <div id="signage-container" class="relative w-full h-full flex items-center justify-center bg-black">
-            <p id="status-text" class="text-white text-sm animate-pulse text-center px-4">
+
+        <div id="signage-container" class="relative w-full h-full bg-black">
+            <p id="status-text"
+                class="absolute inset-0 flex items-center justify-center text-white text-sm animate-pulse text-center px-4 z-10">
                 Sinkronisasi & Mengunduh Konten...
             </p>
+
+            <!-- Layer A & B - selalu ada di DOM, gantian yang "active" (opacity 1) -->
+            <div id="layer-a" class="signage-layer">
+                <img id="img-a" class="hidden">
+                <video id="video-a" class="hidden" playsinline></video>
+            </div>
+            <div id="layer-b" class="signage-layer">
+                <img id="img-b" class="hidden">
+                <video id="video-b" class="hidden" playsinline></video>
+            </div>
         </div>
     </div>
+
     <script>
         // ===== SETUP =====
         let hideTimer;
         const tvFrame = document.getElementById('tv-frame');
         const header = document.getElementById('floating-header');
         const syncBadge = document.getElementById('sync-badge');
-        const CACHE_NAME = 'signage-offline-cache-v1';
-        const POLL_MS = 10000; // cek update tiap 10 detik
+        const statusEl = document.getElementById('status-text');
+        const debugEl = document.getElementById('debug-overlay');
+        const POLL_MS = 10000;
+        const DEBUG_POLL_MS = 3000;
+
+        // ===== DEBUG STATE (baru) =====
+        let debugPlayInfo = '-';
+        let debugLastError = '-';
+
+        // ===== INDEXEDDB =====
+        const DB_NAME = 'signage-offline-db';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'media';
+        let dbPromise = null;
+
+        // ===== CLEAR CACHE VIA URL PARAM =====
+        // Akses: http://[IP]:8000/signage-view?clearcache=1
+        async function clearAllCacheIfRequested() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('clearcache') === '1') {
+                try {
+                    localStorage.removeItem('cached_playlist');
+                    const db = await openDB();
+                    db.close();
+                    await new Promise((resolve, reject) => {
+                        const req = indexedDB.deleteDatabase(DB_NAME);
+                        req.onsuccess = () => resolve();
+                        req.onerror = () => reject(req.error);
+                        req.onblocked = () => resolve(); // tetap lanjut walau blocked
+                    });
+                } catch (e) {
+                    console.warn('Gagal clear cache:', e);
+                }
+                // Redirect ke URL bersih (tanpa ?clearcache=1) biar gak infinite clear tiap reload
+                window.location.href = window.location.pathname;
+                return true; // sinyal supaya boot process nunggu redirect
+            }
+            return false;
+        }
+
+        function openDB() {
+            if (dbPromise) return dbPromise;
+            dbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+            return dbPromise;
+        }
+
+        async function idbSet(key, blob) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).put(blob, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function idbGet(key) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).get(key);
+                req.onsuccess = () => resolve(req.result || null);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function idbKeys() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const req = tx.objectStore(STORE_NAME).getAllKeys();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        async function idbDelete(key) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                tx.objectStore(STORE_NAME).delete(key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function idbClearUnused(usedUrls) {
+            try {
+                const keys = await idbKeys();
+                for (const key of keys) {
+                    if (!usedUrls.includes(key)) {
+                        await idbDelete(key);
+                        if (mediaBlobUrls[key]) {
+                            URL.revokeObjectURL(mediaBlobUrls[key]);
+                            delete mediaBlobUrls[key];
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('Gagal bersihin IndexedDB lama:', e);
+            }
+        }
+
+        let mediaBlobUrls = {};
+
+        // Ambil URL yang siap dipakai buat src img/video: prioritas dari IndexedDB (blob: URL),
+        // fallback ke URL server asli kalau belum sempat ke-cache.
+        async function getPlayableUrl(url) {
+            if (mediaBlobUrls[url]) return mediaBlobUrls[url];
+            try {
+                const blob = await idbGet(url);
+                if (blob) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    mediaBlobUrls[url] = blobUrl;
+                    return blobUrl;
+                }
+            } catch (e) {
+                console.warn('Gagal ambil dari IndexedDB:', url, e);
+                debugLastError = 'IDB read gagal: ' + e.message;
+            }
+            return url; // fallback ke URL server langsung
+        }
 
         // State player
         let currentItems = [];
         let currentIndex = 0;
         let pendingItems = null;
-        let isPlaying = false; // guard buat cegah double-call playNext
+        let isPlaying = false;
         let imageTimerId = null;
+        let activeLayer = 'a';
 
-        // Hover gesture buat munculin header logout
         function showHeader() {
             header.classList.add('visible');
             clearTimeout(hideTimer);
@@ -124,6 +311,43 @@
         }
         tvFrame.addEventListener('mousemove', showHeader);
         tvFrame.addEventListener('touchstart', showHeader);
+
+        // ===== DEBUG OVERLAY =====
+        async function updateDebugOverlay() {
+            const netStatus = navigator.onLine ? 'online' : 'OFFLINE';
+
+            const swSupported = 'serviceWorker' in navigator;
+            let swStatus = swSupported ? 'ok' : 'X';
+            let swActive = '';
+            if (swSupported) {
+                swActive = navigator.serviceWorker.controller ? '(aktif)' : '(blm aktif)';
+            }
+
+            const cacheStatus = ('caches' in window) ? 'ok' : 'X';
+            const idbSupported = 'indexedDB' in window;
+            const idbStatus = idbSupported ? 'ok' : 'X';
+            const blobUrlStatus = (typeof URL !== 'undefined' && 'createObjectURL' in URL) ? 'ok' : 'X';
+
+            let itemsCount = '?';
+            if (idbSupported) {
+                try {
+                    const keys = await idbKeys();
+                    itemsCount = keys.length;
+                } catch (e) {
+                    itemsCount = 'err';
+                }
+            }
+
+            debugEl.textContent =
+                `Net:${netStatus}\n` +
+                `SW:${swStatus} ${swActive}\n` +
+                `Cache:${cacheStatus}\n` +
+                `IDB:${idbStatus}\n` +
+                `BlobURL:${blobUrlStatus}\n` +
+                `Items:${itemsCount}\n` +
+                `Item:${debugPlayInfo}\n` +
+                `Err:${debugLastError}`;
+        }
 
         // ===== SERVICE WORKER =====
         async function registerServiceWorker() {
@@ -135,31 +359,36 @@
             }
         }
 
-        // ===== CACHE HELPER =====
+        // ===== DOWNLOAD & SIMPAN KE INDEXEDDB =====
         async function downloadAndCachePlaylist(playlist) {
             localStorage.setItem('cached_playlist', JSON.stringify(playlist));
-            if (!('caches' in window)) return;
-            const cache = await caches.open(CACHE_NAME);
+
             for (const item of playlist.items) {
                 try {
                     const res = await fetch(item.url, {
                         cache: 'no-store'
                     });
-                    if (res.ok) await cache.put(item.url, res.clone());
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        await idbSet(item.url, blob);
+                    }
                 } catch (e) {
-                    console.warn('Cache miss untuk:', item.url);
+                    console.warn('Gagal download/simpan ke IndexedDB:', item.url, e);
+                    debugLastError = 'Download gagal: ' + item.url;
                 }
             }
+
+            await idbClearUnused(playlist.items.map(i => i.url));
         }
 
-        // ===== INIT: ambil playlist, cache, mulai main =====
+        // ===== INIT =====
         async function initSignagePlayer() {
-            const statusEl = document.getElementById('status-text');
             try {
                 const res = await fetch('/api/signage/playlist', {
                     cache: 'no-store'
                 });
                 if (!res.ok) throw new Error('Server tidak merespons');
+
                 const playlist = await res.json();
 
                 if (!playlist.items || playlist.items.length === 0) {
@@ -170,9 +399,10 @@
 
                 statusEl.textContent = 'Mengunduh konten...';
                 await downloadAndCachePlaylist(playlist);
-                syncBadge.textContent = 'Tersinkron · v' + playlist.version;
 
+                syncBadge.textContent = 'Tersinkron · v' + playlist.version;
                 startLoop(playlist.items);
+
             } catch (err) {
                 console.warn('Offline / gagal koneksi:', err);
                 statusEl.textContent = 'Memuat dari cache offline...';
@@ -187,19 +417,18 @@
                 }
             }
 
-            // Mulai polling setelah init selesai
             setInterval(checkForUpdates, POLL_MS);
         }
 
-        // ===== POLLING: cek versi terbaru di background =====
+        // ===== POLLING =====
         async function checkForUpdates() {
             try {
                 const res = await fetch('/api/signage/playlist', {
                     cache: 'no-store'
                 });
                 if (!res.ok) return;
-                const playlist = await res.json();
 
+                const playlist = await res.json();
                 const raw = localStorage.getItem('cached_playlist');
                 const cachedVersion = raw ? JSON.parse(raw).version : null;
 
@@ -214,16 +443,14 @@
                     pendingItems = playlist.items;
                     syncBadge.textContent = 'Update siap · menunggu giliran...';
                 }
-            } catch (_) {
-                // Offline saat polling — diam saja, lanjut main dari cache
-            }
+            } catch (_) {}
         }
 
         // ===== LOOP UTAMA =====
         function startLoop(items) {
             if (!items || items.length === 0) {
-                document.getElementById('signage-container').innerHTML =
-                    '<p class="text-gray-400 text-xs">Playlist kosong.</p>';
+                statusEl.textContent = 'Playlist kosong.';
+                statusEl.classList.remove('hidden');
                 return;
             }
             currentItems = items;
@@ -232,115 +459,144 @@
             playNext();
         }
 
-        function playNext() {
-            // Guard: jangan panggil dua kali bersamaan
+        function getLayerEls(layer) {
+            return {
+                layerEl: document.getElementById('layer-' + layer),
+                imgEl: document.getElementById('img-' + layer),
+                videoEl: document.getElementById('video-' + layer),
+            };
+        }
+
+        function crossfadeToLayer(newLayer) {
+            const oldLayer = newLayer === 'a' ? 'b' : 'a';
+            const {
+                layerEl: newEl
+            } = getLayerEls(newLayer);
+            const {
+                layerEl: oldEl,
+                imgEl: oldImg,
+                videoEl: oldVideo
+            } = getLayerEls(oldLayer);
+
+            statusEl.classList.add('hidden');
+            newEl.classList.add('active');
+            oldEl.classList.remove('active');
+
+            setTimeout(() => {
+                oldVideo.pause();
+                oldVideo.removeAttribute('src');
+                oldVideo.load();
+                oldVideo.classList.add('hidden');
+                oldImg.src = '';
+                oldImg.classList.add('hidden');
+            }, 550);
+
+            activeLayer = newLayer;
+        }
+
+        async function playNext() {
             if (isPlaying) return;
             isPlaying = true;
-
-            // Bersihkan timer gambar sebelumnya
             if (imageTimerId !== null) {
                 clearTimeout(imageTimerId);
                 imageTimerId = null;
             }
 
-            // Swap ke playlist baru kalau sudah siap (di batas pergantian item)
             if (pendingItems) {
                 currentItems = pendingItems;
                 pendingItems = null;
                 currentIndex = 0;
                 syncBadge.textContent = 'Tersinkron (update diterapkan)';
-                console.log('Playlist baru diterapkan.');
             }
 
-            // Batas aman index
             if (currentIndex >= currentItems.length) currentIndex = 0;
-
             const item = currentItems[currentIndex];
-            const container = document.getElementById('signage-container');
+            const nextLayer = activeLayer === 'a' ? 'b' : 'a';
+            const {
+                imgEl,
+                videoEl
+            } = getLayerEls(nextLayer);
+            const playableUrl = await getPlayableUrl(item.url);
 
-            // Kosongkan container sebelum render item baru
-            container.innerHTML = '';
+            // Update debug info: index/type/sumber (BLOB dari IndexedDB atau URL server langsung)
+            debugPlayInfo = `${currentIndex}/${item.type}/${playableUrl.startsWith('blob:') ? 'BLOB' : 'URL'}`;
 
             if (item.type === 'image') {
-                const img = document.createElement('img');
-                img.src = item.url;
-                img.className = 'w-full h-full object-contain';
+                const preloadImg = new Image();
+                preloadImg.onload = () => {
+                    imgEl.src = playableUrl;
+                    imgEl.classList.remove('hidden');
+                    videoEl.classList.add('hidden');
+                    crossfadeToLayer(nextLayer);
+                    isPlaying = false;
 
-                img.onload = () => {
-                    isPlaying = false; // baru lepas guard setelah gambar loaded
+                    const durMs = (item.duration || 10) * 1000;
+                    imageTimerId = setTimeout(() => {
+                        currentIndex = (currentIndex + 1) % currentItems.length;
+                        playNext();
+                    }, durMs);
                 };
-
-                img.onerror = () => {
-                    console.warn('Gagal load gambar, skip ke berikutnya');
+                preloadImg.onerror = () => {
+                    debugLastError = `IMG gagal (${playableUrl.startsWith('blob:') ? 'blob' : 'url'}): ${item.url}`;
                     isPlaying = false;
                     currentIndex = (currentIndex + 1) % currentItems.length;
                     playNext();
-                    return;
                 };
-
-                container.appendChild(img);
-
-                const durMs = (item.duration || 10) * 1000;
-                imageTimerId = setTimeout(() => {
-                    isPlaying = false;
-                    currentIndex = (currentIndex + 1) % currentItems.length;
-                    playNext();
-                }, durMs);
+                preloadImg.src = playableUrl;
             } else {
-                // VIDEO
-                const video = document.createElement('video');
-                video.src = item.url;
-                video.className = 'w-full h-full object-contain';
-                video.autoplay = true;
-                video.playsInline = true;
-                video.muted = false;
+                videoEl.pause();
+                videoEl.src = playableUrl;
+                videoEl.muted = false;
+                videoEl.classList.remove('hidden');
+                imgEl.classList.add('hidden');
+                videoEl.load();
 
-                let hasAdvanced = false;
-                const safeNext = () => {
-                    if (hasAdvanced) return;
-                    hasAdvanced = true;
-                    isPlaying = false;
+                crossfadeToLayer(nextLayer);
+
+                const playPromise = videoEl.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch((e) => {
+                        if (e.name === 'AbortError') {
+                            // Wajar terjadi kalau src berganti cepat — bukan kegagalan asli, abaikan.
+                            return;
+                        }
+                        debugLastError = `VIDEO play() gagal: ${e.message}`;
+                        videoEl.muted = true;
+                        videoEl.play().catch((e2) => {
+                            debugLastError = `VIDEO play() gagal (muted juga): ${e2.message}`;
+                            currentIndex = (currentIndex + 1) % currentItems.length;
+                            isPlaying = false;
+                            playNext();
+                        });
+                    });
+                }
+
+                isPlaying = false;
+
+                videoEl.onended = () => {
                     currentIndex = (currentIndex + 1) % currentItems.length;
                     playNext();
                 };
 
-                video.onended = safeNext;
-                video.onerror = () => {
-                    console.warn('Gagal load video, skip ke berikutnya');
-                    safeNext();
+                videoEl.onerror = () => {
+                    debugLastError =
+                        `VIDEO onerror (${playableUrl.startsWith('blob:') ? 'blob' : 'url'}): ${item.url}`;
+                    console.warn('Video error, skipping...');
+                    currentIndex = (currentIndex + 1) % currentItems.length;
+                    playNext();
                 };
-
-                container.appendChild(video);
-
-                // WATCHDOG TIMER: Jika video offline macet lebih dari 15 detik atau gagal start, paksa lanjut!
-                const videoWatchdog = setTimeout(() => {
-                    console.warn('Video offline timeout / macet, memaksa skip ke media berikutnya...');
-                    safeNext();
-                }, 15000);
-
-                video.play().catch(() => {
-                    video.muted = true;
-                    video.play().catch(() => {
-                        clearTimeout(videoWatchdog);
-                        safeNext();
-                    });
-                });
-
-                video.onplaying = () => {
-                    isPlaying = false;
-                };
-
-                // Bersihkan watchdog kalau video selesai normal
-                video.addEventListener('ended', () => {
-                    clearTimeout(videoWatchdog);
-                });
             }
         }
 
         // ===== BOOT =====
-        window.onload = function() {
+        window.onload = async function() {
+            const isClearing = await clearAllCacheIfRequested();
+            if (isClearing) return; // lagi proses redirect, jangan lanjut init dulu
+
             registerServiceWorker();
             initSignagePlayer();
+            updateDebugOverlay();
+            setInterval(updateDebugOverlay, DEBUG_POLL_MS);
         };
     </script>
 </body>

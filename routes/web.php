@@ -89,19 +89,19 @@ Route::middleware(['auth', 'role:1'])->group(function () {
 });
 
 // ROUTE KHUSUS TV / SIGNAGE DISPLAY (Role 2)
-Route::middleware(['auth', 'role:2'])->group(function () {
-    Route::get('/signage-view', [SignageController::class, 'index']);
-    Route::get('/api/signage/playlist', [SignageController::class, 'getPlaylistData']);
-    // Route khusus untuk layar Samsung Signage
-    Route::get('/signage-display', [PlaylistController::class, 'displaySignage'])->name('signage.display');
-    // Route untuk API data signage (digunakan untuk auto-update tanpa kedip)
-    Route::get('/api/signage-active', [PlaylistController::class, 'getActivePlaylistJson']);
-});
+Route::middleware(['auth', 'role:2'])->group(function () {});
 
 // ROUTE STREAMING FILE GOOGLE DRIVE (dipakai Admin & TV, jadi cukup auth)
 Route::middleware('auth')->group(function () {
     Route::get('/drive/stream/{fileId}/{ext}', [GoogleDriveController::class, 'streamFile'])->name('drive.stream');
 });
+
+Route::get('/signage-view', [SignageController::class, 'index']);
+Route::get('/api/signage/playlist', [SignageController::class, 'getPlaylistData']);
+// Route khusus untuk layar Samsung Signage
+Route::get('/signage-display', [PlaylistController::class, 'displaySignage'])->name('signage.display');
+// Route untuk API data signage (digunakan untuk auto-update tanpa kedip)
+Route::get('/api/signage-active', [PlaylistController::class, 'getActivePlaylistJson']);
 
 Route::get('/google/login', [GoogleDriveController::class, 'redirectToGoogle'])->name('google.login');
 Route::get('/google/callback', [GoogleDriveController::class, 'handleGoogleCallback']);

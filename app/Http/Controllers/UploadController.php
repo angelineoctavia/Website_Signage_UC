@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Http\Controllers\GoogleDriveController;
+use App\Jobs\RemuxVideoForWeb;
 
 class UploadController extends Controller
 {
@@ -51,6 +52,11 @@ class UploadController extends Controller
         // --- 1. SIMPAN FILE SECARA FISIK KE LOCAL STORAGE (UNTUK TV) ---
         // File akan masuk ke folder storage/app/public/uploads/
         $localPath = $file->storeAs('uploads', $filename, 'public');
+
+        // --- BARU: kalau videonya, remux otomatis biar aman diputar TV ---
+        if (in_array(strtolower($contentType), ['mp4', 'mov', 'avi'])) {
+            RemuxVideoForWeb::dispatch($localPath);
+        }
 
         // --- 2. UPLOAD KE GOOGLE DRIVE (TETAP JALAN SEPERTI BIASA) ---
         try {
